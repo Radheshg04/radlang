@@ -5,62 +5,11 @@ import (
 	"unicode"
 )
 
-type TokenType int
-
-type Token struct {
-	Token  TokenType
-	lexeme string
-	line   int
-}
-
 type lexer struct {
 	input   string // input string to the lexer
 	pos     int    // position of pointer in input
 	readPos int    // next Token
 	ch      byte   // current character
-}
-
-const (
-	ILLEGAL TokenType = iota
-	EOF
-	EOL
-	// Keywords
-	FUNC
-	VAR
-	PRINT
-	INT
-	FLOAT
-	BOOL
-	STRING
-
-	IDENTIFIER
-	NUMBER
-	STRING_LITERAL
-
-	// Operators
-	ASSIGNMENT
-	PLUS
-	MINUS
-	ASTERISK
-	SLASH
-
-	PLUSPLUS
-	MINUSMINUS
-
-	L_PAREN
-	R_PAREN
-	L_BRACE
-	R_BRACE
-)
-
-var keywords = map[string]TokenType{
-	"func":   FUNC,
-	"var":    VAR,
-	"int":    INT,
-	"float":  FLOAT,
-	"bool":   BOOL,
-	"string": STRING,
-	"print":  PRINT,
 }
 
 func (l *lexer) peek() byte {
