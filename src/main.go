@@ -10,6 +10,10 @@ func main() {
 	if err != nil {
 		fmt.Println(err.Error()) // Handle error
 	}
-	fmt.Println(string(file))
-	fmt.Println(Lex(string(file)))
+	fmt.Printf("%s\n", string(file))
+
+	tokens := Lex(string(file))
+	for _, val := range tokens {
+		fmt.Println(val)
+	}
 }

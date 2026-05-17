@@ -1,9 +1,11 @@
 // usr/bin/go run $0 $@ ; exit
 package main
 
-import "unicode"
+import (
+	"unicode"
+)
 
-type TokenType string
+type TokenType int
 
 type Token struct {
 	Token  TokenType
@@ -19,37 +21,36 @@ type lexer struct {
 }
 
 const (
+	ILLEGAL TokenType = iota
+	EOF
+	EOL
 	// Keywords
-	FUNC   TokenType = "func"
-	VAR    TokenType = "var"
-	INT    TokenType = "type"
-	FLOAT  TokenType = "type"
-	BOOL   TokenType = "type"
-	STRING TokenType = "type"
-	PRINT  TokenType = "print"
+	FUNC
+	VAR
+	PRINT
+	INT
+	FLOAT
+	BOOL
+	STRING
 
-	IDENTIFIER     TokenType = "identifier"
-	NUMBER         TokenType = "number"
-	STRING_LITERAL TokenType = "string_literal"
-
-	ILLEGAL TokenType = "illegal"
-	EOF     TokenType = "eof"
-	EOL     TokenType = "eol"
+	IDENTIFIER
+	NUMBER
+	STRING_LITERAL
 
 	// Operators
-	ASSIGNMENT TokenType = "="
-	PLUS       TokenType = "+"
-	MINUS      TokenType = "-"
-	ASTERISK   TokenType = "*"
-	SLASH      TokenType = "/"
+	ASSIGNMENT
+	PLUS
+	MINUS
+	ASTERISK
+	SLASH
 
-	PLUSPLUS   TokenType = "++"
-	MINUSMINUS TokenType = "--"
+	PLUSPLUS
+	MINUSMINUS
 
-	L_PAREN TokenType = "("
-	R_PAREN TokenType = ")"
-	L_BRACE TokenType = "{"
-	R_BRACE TokenType = "}"
+	L_PAREN
+	R_PAREN
+	L_BRACE
+	R_BRACE
 )
 
 var keywords = map[string]TokenType{
@@ -59,6 +60,7 @@ var keywords = map[string]TokenType{
 	"float":  FLOAT,
 	"bool":   BOOL,
 	"string": STRING,
+	"print":  PRINT,
 }
 
 func (l *lexer) peek() byte {
@@ -89,44 +91,53 @@ func (l *lexer) get_lexeme(offset int) string {
 
 func Lex(code string) []Token {
 	var L lexer
-	var tokenStream []Token
+	tokenStream := make([]Token, 0, len(code))
 	line := 1
 	L.input = code
 	L.pos, L.readPos = 0, 1
 	L.ch = L.input[L.pos]
 	for {
-		// fmt.Println(L.pos, L.readPos, L.ch)
-		if L.pos >= len(code) || L.ch == 0 {
+		// EOF Handling
+		if L.pos >= len(code) {
 			tokenStream = append(tokenStream, Token{lexeme: "", Token: EOF, line: line})
 			break
 		}
-		L.ch = L.input[L.pos]
+
+		// Skip whitespaces and tabs
 		if L.ch == ' ' || L.ch == '\t' {
 			L.advance()
 			continue
 		}
+
+		// Tokenize newlines
 		if L.ch == '\n' {
-			tokenStream = append(tokenStream, Token{lexeme: "\\n", Token: EOL, line: line})
+			tokenStream = append(tokenStream, Token{lexeme: "", Token: EOL, line: line})
 			line++
 			L.advance()
 			continue
 		}
 
+		// String handing
 		if L.ch == '"' {
-			L.pos++
 			for {
-				if L.input[L.readPos] == '"' {
+				if L.peek() == 0 {
+					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ILLEGAL, line: line})
+					L.advance()
+					break
+				}
+				if L.peek() == '"' {
+					// make a token of type string literal which starts at L.pos and ends at L.readPos
+					// TODO: Add support for escape sequences
+					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(1), Token: STRING_LITERAL, line: line})
+					L.readPos++
+					L.advance()
 					break
 				}
 				L.readPos++
 			}
-			// make a token of type string literal which starts at L.pos and ends at L.readPos
-			// TODO: Add support for escape sequences
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: STRING_LITERAL, line: line})
-			L.readPos++
-			L.advance()
 			continue
 		}
+
 		switch L.ch {
 		case '=':
 			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ASSIGNMENT, line: line})
@@ -137,6 +148,7 @@ func Lex(code string) []Token {
 				tokenStream = append(tokenStream, Token{lexeme: "++", Token: PLUSPLUS, line: line})
 				L.readPos++
 				L.advance()
+				continue
 			} else {
 				tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: PLUS, line: line})
 				L.advance()
@@ -148,6 +160,7 @@ func Lex(code string) []Token {
 				tokenStream = append(tokenStream, Token{lexeme: "--", Token: MINUSMINUS, line: line})
 				L.readPos++
 				L.advance()
+				continue
 			} else {
 				tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: MINUS, line: line})
 				L.advance()
@@ -178,12 +191,12 @@ func Lex(code string) []Token {
 			L.advance()
 			continue
 		}
+
 		// get identifiers/keywords
-		// BUG: x++ being treated as an identifier, it should be lexed as x identifier and ++ INCREMENT
 		if (L.ch >= 'a' && L.ch <= 'z') || (L.ch >= 'A' && L.ch <= 'Z') {
 			for {
 				next := L.peek()
-				if L.readPos >= len(code) || unicode.IsDigit(rune(next)) || !unicode.IsLetter(rune(next)) {
+				if L.readPos >= len(code) || (!unicode.IsDigit(rune(next)) && !unicode.IsLetter(rune(next))) {
 					token, exists := keywords[L.get_lexeme(0)]
 					if exists {
 						tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: token, line: line})
@@ -194,7 +207,6 @@ func Lex(code string) []Token {
 						tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: IDENTIFIER, line: line})
 						L.advance()
 						break
-
 					}
 				} else {
 					L.readPos++
@@ -202,20 +214,42 @@ func Lex(code string) []Token {
 			}
 			continue
 		}
+
+		// Number detection
 		if L.isDigit(L.pos) {
 			for {
-				if !L.isDigit(L.readPos) {
+				if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
 					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: NUMBER, line: line})
 					L.advance()
 					break
-				} else {
-					L.readPos++
 				}
+				if !L.isDigit(L.readPos) {
+					for {
+						if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
+							tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ILLEGAL, line: line})
+							L.advance()
+							break
+						} else {
+							L.readPos++
+						}
+					}
+					break
+				}
+				L.readPos++
 			}
 			continue
 		}
-		// TODO: Work on catchinbg illegal tokens
 
+		// Catch Illegal tokens
+		for {
+			if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
+				tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ILLEGAL, line: line})
+				L.advance()
+				break
+			} else {
+				L.readPos++
+			}
+		}
 	}
 	return tokenStream
 }
