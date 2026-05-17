@@ -11,7 +11,7 @@ func main() {
 		fmt.Println(err.Error()) // Handle error
 	}
 	fmt.Printf("%s\n", string(file))
-
+	fmt.Printf("Lexer Output: \n")
 	tokens := Lex(string(file))
 	for _, val := range tokens {
 		fmt.Println(val)
