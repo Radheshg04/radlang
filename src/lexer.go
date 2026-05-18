@@ -142,10 +142,10 @@ func Lex(code string) []Token {
 		}
 
 		// get identifiers/keywords
-		if (L.ch >= 'a' && L.ch <= 'z') || (L.ch >= 'A' && L.ch <= 'Z') {
+		if (L.ch >= 'a' && L.ch <= 'z') || (L.ch >= 'A' && L.ch <= 'Z') || L.ch == '_' {
 			for {
 				next := L.peek()
-				if L.readPos >= len(code) || (!unicode.IsDigit(rune(next)) && !unicode.IsLetter(rune(next))) {
+				if L.readPos >= len(code) || (!unicode.IsDigit(rune(next)) && !unicode.IsLetter(rune(next)) && next != '_') {
 					token, exists := keywords[L.get_lexeme(0)]
 					if exists {
 						tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: token, line: line})
