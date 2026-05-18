@@ -26,4 +26,6 @@ func main() {
 		return
 	}
 	printAST(ast)
+
+	fmt.Printf("\nSemantic analysis returned: %v", Analyze(ast))
 }
