@@ -53,6 +53,10 @@ var keywords = map[string]TokenType{
 	"print":  PRINT,
 }
 
+func (t Token) String() string {
+	return fmt.Sprintf("%-4d %-16s %q", t.line, t.Token, t.lexeme)
+}
+
 func (t TokenType) String() string {
 	switch t {
 	case ILLEGAL:
