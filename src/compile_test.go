@@ -12,8 +12,12 @@ func TestCompileHello(t *testing.T) {
 	}
 
 	tokens := Lex(string(src))
-	_, err = Parse(tokens)
+	ast, err := Parse(tokens)
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
+	}
+	err = Analyze(ast)
+	if err != nil {
+		t.Fatalf("semantic analysis returned: %v", err)
 	}
 }
