@@ -1,6 +1,6 @@
 func main() {
     var x int
-    var y float
+    var y int
     x = 10
     y = x + 20 / 5
     print()

@@ -50,7 +50,6 @@ var keywords = map[string]TokenType{
 	"float":  FLOAT,
 	"bool":   BOOL,
 	"string": STRING,
-	"print":  PRINT,
 }
 
 func (t Token) String() string {
