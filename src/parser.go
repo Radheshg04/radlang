@@ -128,6 +128,7 @@ func (*Call_expr) exprNode() {}
 
 type Number_lit struct {
 	Value string
+	Type  TokenType
 }
 
 func (*Number_lit) exprNode() {}
@@ -373,9 +374,12 @@ func (p *Parser) parseFactor() (Expression, error) {
 		return nil, err
 	}
 	switch tok.Token {
-	case NUMBER:
+	case INT:
 		p.consume()
-		return &Number_lit{Value: tok.lexeme}, nil
+		return &Number_lit{Value: tok.lexeme, Type: INT}, nil
+	case FLOAT:
+		p.consume()
+		return &Number_lit{Value: tok.lexeme, Type: FLOAT}, nil
 	case IDENTIFIER:
 		if next, err := p.peekAt(1); err == nil && next.Token == L_PAREN {
 			p.consume()
