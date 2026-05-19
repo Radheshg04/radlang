@@ -1,8 +1,10 @@
 // usr/bin/go run $0 $@ ; exit
-package main
+package lexer
 
 import (
 	"unicode"
+
+	"radlang/token"
 )
 
 type lexer struct {
@@ -12,35 +14,9 @@ type lexer struct {
 	ch      byte   // current character
 }
 
-func (l *lexer) peek() byte {
-	if l.readPos >= len(l.input) {
-		return 0
-	}
-	return l.input[l.readPos]
-}
-
-func (l *lexer) advance() {
-	if l.readPos >= len(l.input) {
-		l.ch = 0
-	} else {
-		l.ch = l.input[l.readPos]
-	}
-	l.pos = l.readPos
-	l.readPos++
-}
-
-func (l *lexer) isDigit(readPos int) bool {
-	ch := l.input[readPos]
-	return ch >= '0' && ch <= '9'
-}
-
-func (l *lexer) get_lexeme(offset int) string {
-	return l.input[l.pos : l.readPos+offset]
-}
-
-func Lex(code string) []Token {
+func Lex(code string) []token.Token {
 	var L lexer
-	tokenStream := make([]Token, 0, len(code))
+	tokenStream := make([]token.Token, 0, len(code))
 	line := 1
 	L.input = code
 	L.pos, L.readPos = 0, 1
@@ -48,7 +24,7 @@ func Lex(code string) []Token {
 	for {
 		// EOF Handling
 		if L.pos >= len(code) {
-			tokenStream = append(tokenStream, Token{lexeme: "", Token: EOF, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: "", Token: token.EOF, Line: line})
 			break
 		}
 
@@ -60,7 +36,7 @@ func Lex(code string) []Token {
 
 		// Tokenize newlines
 		if L.ch == '\n' {
-			tokenStream = append(tokenStream, Token{lexeme: "", Token: EOL, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: "", Token: token.EOL, Line: line})
 			line++
 			L.advance()
 			continue
@@ -70,14 +46,14 @@ func Lex(code string) []Token {
 		if L.ch == '"' {
 			for {
 				if L.peek() == 0 {
-					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ILLEGAL, line: line})
+					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ILLEGAL, Line: line})
 					L.advance()
 					break
 				}
 				if L.peek() == '"' {
 					// make a token of type string literal which starts at L.pos and ends at L.readPos
 					// TODO: Add support for escape sequences
-					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(1), Token: STRING_LITERAL, line: line})
+					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(1), Token: token.STRING_LITERAL, Line: line})
 					L.readPos++
 					L.advance()
 					break
@@ -89,54 +65,54 @@ func Lex(code string) []Token {
 
 		switch L.ch {
 		case '=':
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ASSIGNMENT, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ASSIGNMENT, Line: line})
 			L.advance()
 			continue
 		case '+':
 			if L.peek() == '+' {
-				tokenStream = append(tokenStream, Token{lexeme: "++", Token: PLUSPLUS, line: line})
+				tokenStream = append(tokenStream, token.Token{Lexeme: "++", Token: token.PLUSPLUS, Line: line})
 				L.readPos++
 				L.advance()
 				continue
 			} else {
-				tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: PLUS, line: line})
+				tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.PLUS, Line: line})
 				L.advance()
 				continue
 			}
 
 		case '-':
 			if L.peek() == '-' {
-				tokenStream = append(tokenStream, Token{lexeme: "--", Token: MINUSMINUS, line: line})
+				tokenStream = append(tokenStream, token.Token{Lexeme: "--", Token: token.MINUSMINUS, Line: line})
 				L.readPos++
 				L.advance()
 				continue
 			} else {
-				tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: MINUS, line: line})
+				tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.MINUS, Line: line})
 				L.advance()
 				continue
 			}
 		case '*':
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ASTERISK, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ASTERISK, Line: line})
 			L.advance()
 			continue
 		case '/':
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: SLASH, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.SLASH, Line: line})
 			L.advance()
 			continue
 		case '(':
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: L_PAREN, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.L_PAREN, Line: line})
 			L.advance()
 			continue
 		case ')':
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: R_PAREN, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.R_PAREN, Line: line})
 			L.advance()
 			continue
 		case '{':
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: L_BRACE, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.L_BRACE, Line: line})
 			L.advance()
 			continue
 		case '}':
-			tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: R_BRACE, line: line})
+			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.R_BRACE, Line: line})
 			L.advance()
 			continue
 		}
@@ -146,14 +122,14 @@ func Lex(code string) []Token {
 			for {
 				next := L.peek()
 				if L.readPos >= len(code) || (!unicode.IsDigit(rune(next)) && !unicode.IsLetter(rune(next)) && next != '_') {
-					token, exists := keywords[L.get_lexeme(0)]
+					tok, exists := token.Keywords[L.get_lexeme(0)]
 					if exists {
-						tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: token, line: line})
+						tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: tok, Line: line})
 						L.advance()
 						break
 
 					} else {
-						tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: IDENTIFIER, line: line})
+						tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.IDENTIFIER, Line: line})
 						L.advance()
 						break
 					}
@@ -169,14 +145,14 @@ func Lex(code string) []Token {
 		if L.isDigit(L.pos) {
 			for {
 				if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: INT, line: line})
+					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.INT, Line: line})
 					L.advance()
 					break
 				}
 				if L.peek() == '.' {
 					for {
 						if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-							tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: FLOAT, line: line})
+							tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.FLOAT, Line: line})
 							L.advance()
 							break
 						} else {
@@ -188,7 +164,7 @@ func Lex(code string) []Token {
 				if !L.isDigit(L.readPos) {
 					for {
 						if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-							tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ILLEGAL, line: line})
+							tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ILLEGAL, Line: line})
 							L.advance()
 							break
 						} else {
@@ -205,7 +181,7 @@ func Lex(code string) []Token {
 		// Catch Illegal tokens
 		for {
 			if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-				tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: ILLEGAL, line: line})
+				tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ILLEGAL, Line: line})
 				L.advance()
 				break
 			} else {
