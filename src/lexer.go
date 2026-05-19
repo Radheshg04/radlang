@@ -165,11 +165,24 @@ func Lex(code string) []Token {
 		}
 
 		// Number detection
+		// todo: refactor, remove num and put concrete types (int, float) + support for floats
 		if L.isDigit(L.pos) {
 			for {
 				if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: NUMBER, line: line})
+					tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: INT, line: line})
 					L.advance()
+					break
+				}
+				if L.peek() == '.' {
+					for {
+						if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
+							tokenStream = append(tokenStream, Token{lexeme: L.get_lexeme(0), Token: FLOAT, line: line})
+							L.advance()
+							break
+						} else {
+							L.readPos++
+						}
+					}
 					break
 				}
 				if !L.isDigit(L.readPos) {

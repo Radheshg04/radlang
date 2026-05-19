@@ -49,6 +49,6 @@ func printExpr(expr Expression, depth int) {
 	case *Identifier_expr:
 		fmt.Printf("%sIdentifier_expr: %s\n", pad, e.Name)
 	case *Number_lit:
-		fmt.Printf("%sNumber_lit: %s\n", pad, e.Value)
+		fmt.Printf("%sNumber_lit: %s %s\n", pad, e.Type, e.Value)
 	}
 }

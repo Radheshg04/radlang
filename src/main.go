@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	file, err := os.ReadFile("../tests/hello.rad")
+	file, err := os.ReadFile("../tests/arithmetic.rad")
 	if err != nil {
 		fmt.Println(err.Error())
 		return

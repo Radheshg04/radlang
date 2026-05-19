@@ -1,7 +1,0 @@
-func main() {
-    var x int
-    var y int
-    x = 10
-    y = x + 20 / 5
-    print()
-}

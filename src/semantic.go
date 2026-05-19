@@ -44,7 +44,7 @@ func inferType(expr Expression, symbols map[string]Symbol) (TokenType, error) {
 		if leftType == rightType {
 			return leftType, nil
 		}
-		return 0, fmt.Errorf("")
+		return 0, fmt.Errorf("cant perform op on different dtypes")
 	}
 	return 0, fmt.Errorf("unknown type")
 }
