@@ -1,12 +1,15 @@
-package main
+package semantic
 
 import (
 	"fmt"
 	"strings"
+
+	"radlang/parser"
+	"radlang/token"
 )
 
 type Symbol struct {
-	Type     TokenType
+	Type     token.TokenType
 	Declared bool
 }
 
@@ -14,25 +17,25 @@ var builtins = map[string]bool{
 	"print": true,
 }
 
-func inferType(expr Expression, symbols map[string]Symbol) (TokenType, error) {
+func inferType(expr parser.Expression, symbols map[string]Symbol) (token.TokenType, error) {
 	switch e := expr.(type) {
-	case *Number_lit:
+	case *parser.Number_lit:
 		if strings.Contains(e.Value, ".") {
-			return FLOAT, nil
+			return token.FLOAT, nil
 		}
-		return INT, nil
+		return token.INT, nil
 
-	case *Identifier_expr:
+	case *parser.Identifier_expr:
 		symbol, exists := symbols[e.Name]
 		if !exists {
 			return 0, fmt.Errorf("variable %v not declared", e.Name)
 		}
 		return symbol.Type, nil
 
-	// case *Call_expr:
+	// case *parser.Call_expr:
 	// 	// can be used later when return is added
 
-	case *Binary_expr:
+	case *parser.Binary_expr:
 		leftType, err := inferType(e.Left, symbols)
 		if err != nil {
 			return 0, err
@@ -49,11 +52,11 @@ func inferType(expr Expression, symbols map[string]Symbol) (TokenType, error) {
 	return 0, fmt.Errorf("unknown type")
 }
 
-func Analyze(p *Program) error {
+func Analyze(p *parser.Program) error {
 
 	// Initialize semantic tables
 	SymbolTable := make(map[string]Symbol)
-	FunctionTable := make(map[string]*Func_Decl)
+	FunctionTable := make(map[string]*parser.Func_Decl)
 
 	// Check for redeclared functions
 	for _, function := range p.Functions {
@@ -64,7 +67,7 @@ func Analyze(p *Program) error {
 
 		for _, statement := range function.Body.Statement_Group {
 			switch s := statement.(type) {
-			case *Decl_stmt:
+			case *parser.Decl_stmt:
 				// check for redeclared variables
 				if _, exists := SymbolTable[s.Name]; exists {
 					return fmt.Errorf("%v variable redaclared in this block", s.Name)
@@ -74,7 +77,7 @@ func Analyze(p *Program) error {
 				symbol := Symbol{Type: s.Type, Declared: true}
 				SymbolTable[s.Name] = symbol
 
-			case *Assign_stmt:
+			case *parser.Assign_stmt:
 				// check for assignment before declaration
 				symbol, exists := SymbolTable[s.Target]
 				if !exists {
@@ -90,19 +93,19 @@ func Analyze(p *Program) error {
 					return fmt.Errorf("Cant assign %s to variable %v of type %s", assignType, s.Value, symbol.Type.String())
 				}
 
-			case *Update_stmt:
+			case *parser.Update_stmt:
 				// check for assignment before declaration
 				symbol, exists := SymbolTable[s.Target]
 				if !exists {
 					return fmt.Errorf("Update to undeclared variable %v", s.Target)
 				}
-				if symbol.Type != INT && symbol.Type != FLOAT {
+				if symbol.Type != token.INT && symbol.Type != token.FLOAT {
 					return fmt.Errorf("Cannot perform update on variable of type %v", symbol.Type.String())
 				}
 
-			case *Expr_stmt:
+			case *parser.Expr_stmt:
 				switch e := s.Expr.(type) {
-				case *Call_expr:
+				case *parser.Call_expr:
 					if builtins[e.Name] {
 						break
 					}

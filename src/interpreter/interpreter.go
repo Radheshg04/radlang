@@ -1,69 +1,31 @@
-package main
+package interpreter
 
 import (
 	"fmt"
+	"radlang/parser"
+	"radlang/token"
 	"strconv"
 )
 
-type Numeric interface {
-	~int64 | ~int | ~float64
-}
-
-type Value interface {
-	valueType() TokenType
-}
-
-type IntValue struct {
-	Val int
-}
-
-func (v IntValue) valueType() TokenType {
-	return INT
-}
-
-type FloatValue struct {
-	Val float64
-}
-
-func (v FloatValue) valueType() TokenType {
-	return FLOAT
-}
-
-type BoolValue struct {
-	Val bool
-}
-
-func (v BoolValue) valueType() TokenType {
-	return BOOL
-}
-
-type StringValue struct {
-	Val string
-}
-
-func (v StringValue) valueType() TokenType {
-	return STRING
-}
-
 var env = make(map[string]Value)
 
-func exec(statement Statement) error {
+func exec(statement parser.Statement) error {
 	switch s := statement.(type) {
-	case *Decl_stmt:
+	case *parser.Decl_stmt:
 		switch s.Type {
-		case INT:
+		case token.INT:
 			env[s.Name] = IntValue{}
-		case FLOAT:
+		case token.FLOAT:
 			env[s.Name] = FloatValue{}
-		case BOOL:
+		case token.BOOL:
 			env[s.Name] = BoolValue{}
-		case STRING:
+		case token.STRING:
 			env[s.Name] = StringValue{}
 		default:
 			return fmt.Errorf("Undefined dtype for decl stmt")
 		}
 		return nil
-	case *Assign_stmt:
+	case *parser.Assign_stmt:
 		val, err := eval(s.Value)
 		if err != nil {
 			return err
@@ -71,16 +33,16 @@ func exec(statement Statement) error {
 		env[s.Target] = val
 		return nil
 
-	case *Expr_stmt:
+	case *parser.Expr_stmt:
 		_, err := eval(s.Expr)
 		if err != nil {
 			return err
 		}
 		return nil
 
-	case *Update_stmt:
+	case *parser.Update_stmt:
 		delta := 1
-		if s.Op == MINUSMINUS {
+		if s.Op == token.MINUSMINUS {
 			delta = -1
 		}
 		switch v := env[s.Target].(type) {
@@ -97,17 +59,17 @@ func exec(statement Statement) error {
 	return fmt.Errorf("statement interpretation failed")
 }
 
-func eval(expression Expression) (Value, error) {
+func eval(expression parser.Expression) (Value, error) {
 	switch e := expression.(type) {
-	case *Number_lit:
+	case *parser.Number_lit:
 		switch e.Type {
-		case INT:
+		case token.INT:
 			val, err := strconv.Atoi(e.Value)
 			if err != nil {
 				return nil, err
 			}
 			return IntValue{Val: val}, nil
-		case FLOAT:
+		case token.FLOAT:
 			val, err := strconv.ParseFloat(e.Value, 64)
 			if err != nil {
 				return nil, err
@@ -115,14 +77,14 @@ func eval(expression Expression) (Value, error) {
 			return FloatValue{Val: val}, nil
 		}
 
-	case *Call_expr:
+	case *parser.Call_expr:
 		if e.Name == "print" {
 			fmt.Println(env)
 		}
 		return nil, nil
-	case *Identifier_expr:
+	case *parser.Identifier_expr:
 		return env[e.Name], nil
-	case *Binary_expr:
+	case *parser.Binary_expr:
 		left, err := eval(e.Left)
 		if err != nil {
 			return nil, err
@@ -146,21 +108,21 @@ func eval(expression Expression) (Value, error) {
 }
 
 // use generic func to perform bin op
-func performOp[T Numeric](l T, r T, op TokenType) T {
+func performOp[T Numeric](l T, r T, op token.TokenType) T {
 	switch op {
-	case PLUS:
+	case token.PLUS:
 		return l + r
-	case MINUS:
+	case token.MINUS:
 		return l - r
-	case ASTERISK:
+	case token.ASTERISK:
 		return l * r
-	case SLASH:
+	case token.SLASH:
 		return l / r
 	}
 	return 0
 }
 
-func interpret(program *Program) error {
+func Interpret(program *parser.Program) error {
 	for _, function := range program.Functions {
 		if function.Name == "main" {
 			for _, stmt := range function.Body.Statement_Group {

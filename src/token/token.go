@@ -1,4 +1,4 @@
-package main
+package token
 
 import "fmt"
 
@@ -39,11 +39,11 @@ const (
 
 type Token struct {
 	Token  TokenType
-	lexeme string
-	line   int
+	Lexeme string
+	Line   int
 }
 
-var keywords = map[string]TokenType{
+var Keywords = map[string]TokenType{
 	"func":   FUNC,
 	"var":    VAR,
 	"int":    INT,
@@ -53,7 +53,7 @@ var keywords = map[string]TokenType{
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("%-4d %-16s %q", t.line, t.Token, t.lexeme)
+	return fmt.Sprintf("%-4d %-16s %q", t.Line, t.Token, t.Lexeme)
 }
 
 func (t TokenType) String() string {
