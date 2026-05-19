@@ -27,5 +27,11 @@ func main() {
 	}
 	printAST(ast)
 
-	fmt.Printf("\nSemantic analysis returned: %v", Analyze(ast))
+	err = Analyze(ast)
+	if err != nil {
+		fmt.Printf("\nSemantic analysis returned: %v\n", err)
+		return
+	}
+
+	interpret(ast)
 }
