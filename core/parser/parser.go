@@ -252,10 +252,10 @@ func (p *Parser) parseFactor() (Expression, error) {
 		return nil, err
 	}
 	switch tok.Token {
-	case token.INT:
+	case token.INT_LIT:
 		p.consume()
 		return &Number_lit{Value: tok.Lexeme, Type: token.INT}, nil
-	case token.FLOAT:
+	case token.FLOAT_LIT:
 		p.consume()
 		return &Number_lit{Value: tok.Lexeme, Type: token.FLOAT}, nil
 	case token.IDENTIFIER:
