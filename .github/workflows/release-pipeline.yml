@@ -2,8 +2,10 @@ name: Release Pipeline
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+    paths:
+      - "core/version"
 
 permissions:
   contents: write
@@ -55,22 +57,30 @@ jobs:
         with:
           go-version-file: core/go.mod
 
-      - name: Build release binaries
+      - name: Tag version
+        id: tag
         run: |
-          VERSION="${{ github.ref_name }}"
-          mkdir -p dist
+          VERSION=$(cat core/version | tr -d '[:space:]')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          git tag "$VERSION"
+          git push origin "$VERSION"
 
-          GOOS=linux   GOARCH=amd64  go build -o dist/radlang-linux-amd64       ./core
-          GOOS=linux   GOARCH=arm64  go build -o dist/radlang-linux-arm64        ./core
-          GOOS=darwin  GOARCH=amd64  go build -o dist/radlang-darwin-amd64      ./core
-          GOOS=darwin  GOARCH=arm64  go build -o dist/radlang-darwin-arm64      ./core
-          GOOS=windows GOARCH=amd64  go build -o dist/radlang-windows-amd64.exe ./core
+      - name: Build release binaries
+        working-directory: core
+        run: |
+          mkdir -p ../dist
+
+          GOOS=linux   GOARCH=amd64  go build -o ../dist/radlang-linux-amd64       .
+          GOOS=linux   GOARCH=arm64  go build -o ../dist/radlang-linux-arm64        .
+          GOOS=darwin  GOARCH=amd64  go build -o ../dist/radlang-darwin-amd64      .
+          GOOS=darwin  GOARCH=arm64  go build -o ../dist/radlang-darwin-arm64      .
+          GOOS=windows GOARCH=amd64  go build -o ../dist/radlang-windows-amd64.exe .
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "${{ github.ref_name }}" \
+          gh release create "${{ steps.tag.outputs.version }}" \
+            --title "${{ steps.tag.outputs.version }}" \
             --generate-notes \
             dist/*
