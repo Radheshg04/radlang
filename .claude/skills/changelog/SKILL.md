@@ -1,7 +1,7 @@
 ---
 name: changelog
 description: >
-  Populate src/changelog.md by diffing the current main branch against the previous git version tag.
+  Populate core/changelog.md by diffing the current main branch against the previous git version tag.
   Fetches commit history via git log and GitHub PR data via `gh` CLI, groups changes by
   Conventional Commits type, and writes a new version section. Use when user says "update
   changelog", "generate changelog", "populate changelog", "/changelog", or prepares a release.
@@ -9,7 +9,7 @@ description: >
 
 # Changelog Skill
 
-Populate `src/changelog.md` with a new version entry based on commits since the last git tag.
+Populate `core/changelog.md` with a new version entry based on commits since the last git tag.
 
 ## Process
 
@@ -66,8 +66,8 @@ Populate `src/changelog.md` with a new version entry based on commits since the 
    - Strip conventional commit prefix from bullet text (`feat(lexer): add X` → `add X` under Features, scope in parens if useful: `add X (lexer)`)
    - Keep bullets short — one line each
 
-5. **Write to src/changelog.md**
-   - If `src/changelog.md` doesn't exist, create it with a header first:
+5. **Write to core/changelog.md**
+   - If `core/changelog.md` doesn't exist, create it with a header first:
      ```markdown
      # Changelog
 
@@ -88,5 +88,5 @@ Populate `src/changelog.md` with a new version entry based on commits since the 
 
 ## Boundaries
 
-Only writes `src/changelog.md`. Does not create git tags, does not push, does not open PRs.
+Only writes `core/changelog.md`. Does not create git tags, does not push, does not open PRs.
 After writing, remind the user to tag the release: `git tag v<version> && git push --tags`.

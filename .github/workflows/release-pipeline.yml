@@ -17,14 +17,14 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: src/go.mod
+          go-version-file: core/go.mod
 
       - name: Build
-        working-directory: src
+        working-directory: core
         run: go build ./...
 
       - name: Test all packages
-        working-directory: src
+        working-directory: core
         run: go test ./...
 
   compile-test:
@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: src/go.mod
+          go-version-file: core/go.mod
 
       - name: Run compile_test.go
         working-directory: tests
@@ -53,18 +53,18 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: src/go.mod
+          go-version-file: core/go.mod
 
       - name: Build release binaries
         run: |
           VERSION="${{ github.ref_name }}"
           mkdir -p dist
 
-          GOOS=linux   GOARCH=amd64  go build -o dist/radlang-linux-amd64       ./src
-          GOOS=linux   GOARCH=arm64  go build -o dist/radlang-linux-arm64        ./src
-          GOOS=darwin  GOARCH=amd64  go build -o dist/radlang-darwin-amd64      ./src
-          GOOS=darwin  GOARCH=arm64  go build -o dist/radlang-darwin-arm64      ./src
-          GOOS=windows GOARCH=amd64  go build -o dist/radlang-windows-amd64.exe ./src
+          GOOS=linux   GOARCH=amd64  go build -o dist/radlang-linux-amd64       ./core
+          GOOS=linux   GOARCH=arm64  go build -o dist/radlang-linux-arm64        ./core
+          GOOS=darwin  GOARCH=amd64  go build -o dist/radlang-darwin-amd64      ./core
+          GOOS=darwin  GOARCH=arm64  go build -o dist/radlang-darwin-arm64      ./core
+          GOOS=windows GOARCH=amd64  go build -o dist/radlang-windows-amd64.exe ./core
 
       - name: Create GitHub Release
         env:
