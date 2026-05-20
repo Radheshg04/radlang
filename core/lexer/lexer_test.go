@@ -62,14 +62,14 @@ func TestLexIdentifier(t *testing.T) {
 
 func TestLexIntLiteral(t *testing.T) {
 	assertTokens(t, "42", []tokenExpect{
-		{token.INT, "42"},
+		{token.INT_LIT, "42"},
 		{token.EOF, ""},
 	})
 }
 
 func TestLexFloatLiteral(t *testing.T) {
 	assertTokens(t, "3.14", []tokenExpect{
-		{token.FLOAT, "3.14"},
+		{token.FLOAT_LIT, "3.14"},
 		{token.EOF, ""},
 	})
 }

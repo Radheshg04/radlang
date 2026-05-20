@@ -145,14 +145,14 @@ func Lex(code string) []token.Token {
 		if L.isDigit(L.pos) {
 			for {
 				if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.INT, Line: line})
+					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.INT_LIT, Line: line})
 					L.advance()
 					break
 				}
 				if L.peek() == '.' {
 					for {
 						if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-							tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.FLOAT, Line: line})
+							tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.FLOAT_LIT, Line: line})
 							L.advance()
 							break
 						} else {

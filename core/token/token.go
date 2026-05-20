@@ -19,6 +19,8 @@ const (
 
 	IDENTIFIER
 	NUMBER
+	INT_LIT
+	FLOAT_LIT
 	STRING_LITERAL
 
 	// Operators
@@ -74,6 +76,10 @@ func (t TokenType) String() string {
 		return "INT"
 	case FLOAT:
 		return "FLOAT"
+	case INT_LIT:
+		return "INT_LIT"
+	case FLOAT_LIT:
+		return "FLOAT_LIT"
 	case BOOL:
 		return "BOOL"
 	case STRING:
