@@ -8,6 +8,7 @@ const (
 	ILLEGAL TokenType = iota
 	EOF
 	EOL
+
 	// Keywords
 	FUNC
 	VAR
@@ -16,22 +17,47 @@ const (
 	FLOAT
 	BOOL
 	STRING
+	ERR
+	TYPE
+	STRUCT
+	INTERFACE
 
 	IDENTIFIER
-	NUMBER
 	INT_LIT
 	FLOAT_LIT
-	STRING_LITERAL
+	BOOL_LIT
+	STRING_LIT
+	ERROR_LITERAL
+	COMMA
 
 	// Operators
 	ASSIGNMENT
+	WALRUS
 	PLUS
 	MINUS
 	ASTERISK
 	SLASH
 
+	// CMPR_OP
+	EQ  // ==
+	NEQ // !=
+	GT  // >
+	GTE // >=
+	LT  // <
+	LTE // <=
+
+	TRUE
+	FALSE
+
 	PLUSPLUS
 	MINUSMINUS
+
+	IF
+	ELSE
+	RETURN
+	FOR
+	BREAK
+	CONTINUE
 
 	L_PAREN
 	R_PAREN
@@ -46,12 +72,24 @@ type Token struct {
 }
 
 var Keywords = map[string]TokenType{
-	"func":   FUNC,
-	"var":    VAR,
-	"int":    INT,
-	"float":  FLOAT,
-	"bool":   BOOL,
-	"string": STRING,
+	"func":      FUNC,
+	"var":       VAR,
+	"int":       INT,
+	"float":     FLOAT,
+	"bool":      BOOL,
+	"string":    STRING,
+	"err":       ERR,
+	"type":      TYPE,
+	"struct":    STRUCT,
+	"interface": INTERFACE,
+	"if":        IF,
+	"else":      ELSE,
+	"return":    RETURN,
+	"for":       FOR,
+	"break":     BREAK,
+	"continue":  CONTINUE,
+	"true":      TRUE,
+	"false":     FALSE,
 }
 
 func (t Token) String() string {
@@ -84,14 +122,28 @@ func (t TokenType) String() string {
 		return "BOOL"
 	case STRING:
 		return "STRING"
+	case ERR:
+		return "ERR"
+	case TYPE:
+		return "TYPE"
+	case STRUCT:
+		return "STRUCT"
+	case INTERFACE:
+		return "INTERFACE"
 	case IDENTIFIER:
 		return "IDENTIFIER"
-	case NUMBER:
-		return "NUMBER"
-	case STRING_LITERAL:
-		return "STRING_LITERAL"
+	case STRING_LIT:
+		return "STRING_LIT"
+	case BOOL_LIT:
+		return "BOOL_LIT"
+	case ERROR_LITERAL:
+		return "ERROR_LITERAL"
+	case COMMA:
+		return "COMMA"
 	case ASSIGNMENT:
 		return "ASSIGNMENT"
+	case WALRUS:
+		return "WALRUS"
 	case PLUS:
 		return "PLUS"
 	case MINUS:
@@ -100,10 +152,38 @@ func (t TokenType) String() string {
 		return "ASTERISK"
 	case SLASH:
 		return "SLASH"
+	case EQ:
+		return "EQ"
+	case NEQ:
+		return "NEQ"
+	case GT:
+		return "GT"
+	case GTE:
+		return "GTE"
+	case LT:
+		return "LT"
+	case LTE:
+		return "LTE"
+	case TRUE:
+		return "TRUE"
+	case FALSE:
+		return "FALSE"
 	case PLUSPLUS:
 		return "PLUSPLUS"
 	case MINUSMINUS:
 		return "MINUSMINUS"
+	case IF:
+		return "IF"
+	case ELSE:
+		return "ELSE"
+	case RETURN:
+		return "RETURN"
+	case FOR:
+		return "FOR"
+	case BREAK:
+		return "BREAK"
+	case CONTINUE:
+		return "CONTINUE"
 	case L_PAREN:
 		return "L_PAREN"
 	case R_PAREN:
