@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "core/version"
+  workflow_dispatch:
 
 permissions:
   contents: write
