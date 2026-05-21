@@ -1,0 +1,73 @@
+type Point struct {
+    var x int
+    var y int
+}
+
+type Shape interface {
+    area() float
+    perimeter() float
+}
+
+func add(a int, b int) int {
+    return a + b
+}
+
+func divide(a float, b float) (float, err) {
+    return a / b, error("division result")
+}
+
+func main() {
+    var x int
+    var y float
+    var flag bool
+    var msg string
+    var e err
+
+    x := 10
+    y := 3.14
+    flag := true
+    msg := "hello"
+
+    x = x + 5 * 2
+    x = (x + 1) * 3
+
+    x++
+    y--
+
+    x, y = 1, 2.0
+
+    result := add(x, 10)
+
+    if x > 0 {
+        print()
+    }
+
+    if x == result {
+        print()
+    } else {
+        print()
+    }
+
+    if false {
+        print()
+    }
+
+    for true {
+        break
+    }
+
+    for x >= 0 {
+        if x == 50 {
+            continue
+        }
+        x--
+    }
+
+    e = error("something went wrong")
+
+    return
+}
+
+func multiReturn(a int, b int) (int, int) {
+    return a + b, a - b
+}

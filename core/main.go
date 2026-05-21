@@ -11,12 +11,13 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: radlang <file>")
-		os.Exit(1)
-	}
-	fileName := os.Args[1]
-	file, err := os.ReadFile(fileName)
+	// if len(os.Args) < 2 {
+	// 	fmt.Fprintln(os.Stderr, "usage: radlang <file>")
+	// 	os.Exit(1)
+	// }
+	// fileName := os.Args[1]
+	// file, err := os.ReadFile(fileName)
+	file, err := os.ReadFile("../tests/arithmetic.rad")
 	if err != nil {
 		fmt.Println(err.Error())
 		return

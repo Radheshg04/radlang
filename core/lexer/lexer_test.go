@@ -111,7 +111,7 @@ func TestLexDelimiters(t *testing.T) {
 
 func TestLexStringLiteral(t *testing.T) {
 	assertTokens(t, `"hello"`, []tokenExpect{
-		{token.STRING_LITERAL, `"hello"`},
+		{token.STRING_LIT, `hello`},
 		{token.EOF, ""},
 	})
 }
