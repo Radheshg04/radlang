@@ -8,186 +8,222 @@ import (
 )
 
 type lexer struct {
-	input   string // input string to the lexer
-	pos     int    // position of pointer in input
-	readPos int    // next Token
-	ch      byte   // current character
+	input       string // input string to the lexer
+	pos         int    // position of pointer in input
+	readPos     int    // next Token
+	ch          byte   // current character
+	line        int
+	tokenStream []token.Token
 }
 
 func Lex(code string) []token.Token {
-	var L lexer
-	tokenStream := make([]token.Token, 0, len(code))
-	line := 1
-	L.input = code
-	L.pos, L.readPos = 0, 1
-	L.ch = L.input[L.pos]
+	var l lexer
+	l.line = 1
+	l.input = code
+	l.readPos = 1
+	// guard against empty input
+	if len(code) == 0 {
+		l.emit(token.EOF)
+		return l.tokenStream
+	}
+	l.ch = l.input[l.pos]
 	for {
 		// EOF Handling
-		if L.pos >= len(code) {
-			tokenStream = append(tokenStream, token.Token{Lexeme: "", Token: token.EOF, Line: line})
+		if l.pos >= len(code) {
+			l.emit(token.EOF)
 			break
 		}
 
 		// Skip whitespaces and tabs
-		if L.ch == ' ' || L.ch == '\t' {
-			L.advance()
+		if l.ch == ' ' || l.ch == '\t' {
+			l.advance()
 			continue
 		}
 
 		// Tokenize newlines
-		if L.ch == '\n' {
-			tokenStream = append(tokenStream, token.Token{Lexeme: "", Token: token.EOL, Line: line})
-			line++
-			L.advance()
+		if l.ch == '\n' {
+			l.emit(token.EOL)
+			l.line++
 			continue
 		}
 
 		// String handing
-		if L.ch == '"' {
+		if l.ch == '"' {
 			for {
-				if L.peek() == 0 {
-					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ILLEGAL, Line: line})
-					L.advance()
+				if l.peek() == '\n' || l.readPos >= len(l.input) {
+					l.emit(token.ILLEGAL)
 					break
 				}
-				if L.peek() == '"' {
-					// make a token of type string literal which starts at L.pos and ends at L.readPos
+				if l.match('"') {
+					// make a token of type string literal which starts at l.pos and ends at l.readPos
 					// TODO: Add support for escape sequences
-					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(1), Token: token.STRING_LITERAL, Line: line})
-					L.readPos++
-					L.advance()
+					l.emit(token.STRING_LIT)
 					break
 				}
-				L.readPos++
+				l.readPos++
 			}
 			continue
 		}
 
-		switch L.ch {
-		case '=':
-			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ASSIGNMENT, Line: line})
-			L.advance()
+		switch l.ch {
+		case ',':
+			l.emit(token.COMMA)
 			continue
-		case '+':
-			if L.peek() == '+' {
-				tokenStream = append(tokenStream, token.Token{Lexeme: "++", Token: token.PLUSPLUS, Line: line})
-				L.readPos++
-				L.advance()
-				continue
-			} else {
-				tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.PLUS, Line: line})
-				L.advance()
+
+		case ':':
+			if l.match('=') {
+				l.emit(token.WALRUS)
 				continue
 			}
+			l.emit(token.ILLEGAL)
+			continue
+
+		case '=':
+			if l.match('=') {
+				l.emit(token.EQ)
+			} else {
+				l.emit(token.ASSIGNMENT)
+			}
+			continue
+
+		case '!':
+			if l.match('=') {
+				l.emit(token.NEQ)
+				continue
+			}
+			l.emit(token.ILLEGAL)
+			continue
+
+		case '>':
+			if l.match('=') {
+				l.emit(token.GTE)
+			} else {
+				l.emit(token.GT)
+			}
+			continue
+
+		case '<':
+			if l.match('=') {
+				l.emit(token.LTE)
+			} else {
+				l.emit(token.LT)
+			}
+			continue
+
+		case '+':
+			if l.match('+') {
+				l.emit(token.PLUSPLUS)
+			} else {
+				l.emit(token.PLUS)
+			}
+			continue
 
 		case '-':
-			if L.peek() == '-' {
-				tokenStream = append(tokenStream, token.Token{Lexeme: "--", Token: token.MINUSMINUS, Line: line})
-				L.readPos++
-				L.advance()
-				continue
+			if l.match('-') {
+				l.emit(token.MINUSMINUS)
 			} else {
-				tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.MINUS, Line: line})
-				L.advance()
-				continue
+				l.emit(token.MINUS)
 			}
+			continue
+
 		case '*':
-			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ASTERISK, Line: line})
-			L.advance()
+			l.emit(token.ASTERISK)
 			continue
+
 		case '/':
-			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.SLASH, Line: line})
-			L.advance()
+			l.emit(token.SLASH)
 			continue
+
 		case '(':
-			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.L_PAREN, Line: line})
-			L.advance()
+			l.emit(token.L_PAREN)
 			continue
+
 		case ')':
-			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.R_PAREN, Line: line})
-			L.advance()
+			l.emit(token.R_PAREN)
 			continue
+
 		case '{':
-			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.L_BRACE, Line: line})
-			L.advance()
+			l.emit(token.L_BRACE)
 			continue
+
 		case '}':
-			tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.R_BRACE, Line: line})
-			L.advance()
+			l.emit(token.R_BRACE)
 			continue
 		}
 
 		// get identifiers/keywords
-		if (L.ch >= 'a' && L.ch <= 'z') || (L.ch >= 'A' && L.ch <= 'Z') || L.ch == '_' {
+		if (l.ch >= 'a' && l.ch <= 'z') || (l.ch >= 'A' && l.ch <= 'Z') || l.ch == '_' {
 			for {
-				next := L.peek()
-				if L.readPos >= len(code) || (!unicode.IsDigit(rune(next)) && !unicode.IsLetter(rune(next)) && next != '_') {
-					tok, exists := token.Keywords[L.get_lexeme(0)]
+				next := l.peek()
+				if l.readPos >= len(code) || (!unicode.IsDigit(rune(next)) && !unicode.IsLetter(rune(next)) && next != '_') {
+					tok, exists := token.Keywords[l.get_lexeme(nil)]
 					if exists {
-						tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: tok, Line: line})
-						L.advance()
+						l.emit(tok)
 						break
 
 					} else {
-						tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.IDENTIFIER, Line: line})
-						L.advance()
+						l.emit(token.IDENTIFIER)
 						break
 					}
 				} else {
-					L.readPos++
+					l.readPos++
 				}
 			}
 			continue
 		}
 
 		// Number detection
-		// todo: refactor, remove num and put concrete types (int, float) + support for floats
-		if L.isDigit(L.pos) {
+		if l.isDigit(l.pos) {
 			for {
-				if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-					tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.INT_LIT, Line: line})
-					L.advance()
+				if l.isNumberTerminator(l.peek()) {
+					l.emit(token.INT_LIT)
 					break
 				}
-				if L.peek() == '.' {
+				if l.match('.') {
 					for {
-						if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-							tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.FLOAT_LIT, Line: line})
-							L.advance()
+						if l.isNumberTerminator(l.peek()) {
+							l.emit(token.FLOAT_LIT)
+							break
+						}
+						if !l.isDigit(l.readPos) {
+							for {
+								if l.isTokenTerminator(l.peek()) {
+									l.emit(token.ILLEGAL)
+									break
+								}
+								l.readPos++
+							}
+							break
+						}
+						l.readPos++
+					}
+					break
+				}
+				if !l.isDigit(l.readPos) {
+					for {
+						if l.isTokenTerminator(l.peek()) {
+							l.emit(token.ILLEGAL)
 							break
 						} else {
-							L.readPos++
+							l.readPos++
 						}
 					}
 					break
 				}
-				if !L.isDigit(L.readPos) {
-					for {
-						if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-							tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ILLEGAL, Line: line})
-							L.advance()
-							break
-						} else {
-							L.readPos++
-						}
-					}
-					break
-				}
-				L.readPos++
+				l.readPos++
 			}
 			continue
 		}
 
 		// Catch Illegal tokens
 		for {
-			if L.peek() == ' ' || L.peek() == '\t' || L.peek() == '\n' || L.peek() == 0 {
-				tokenStream = append(tokenStream, token.Token{Lexeme: L.get_lexeme(0), Token: token.ILLEGAL, Line: line})
-				L.advance()
+			if l.isTokenTerminator(l.peek()) {
+				l.emit(token.ILLEGAL)
 				break
 			} else {
-				L.readPos++
+				l.readPos++
 			}
 		}
 	}
-	return tokenStream
+	return l.tokenStream
 }
