@@ -79,14 +79,6 @@ type Decl_stmt struct {
 
 func (*Decl_stmt) stmtNode() {}
 
-// Handles x++ and x--
-type Update_stmt struct {
-	Target string
-	Op     token.TokenType
-}
-
-func (*Update_stmt) stmtNode() {}
-
 type Control_stmt struct {
 	Expression Expression
 	IfBlock    *Block
