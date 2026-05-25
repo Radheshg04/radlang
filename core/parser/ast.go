@@ -1,6 +1,8 @@
 package parser
 
-import "radlang/token"
+import (
+	"radlang/token"
+)
 
 type Program struct {
 	Functions  []*Func_Decl
@@ -15,23 +17,23 @@ type Func_Decl struct {
 }
 
 type Func_Signature struct {
-	Name    *string
+	Name    string
 	Params  []*Param
 	Returns []token.TokenType
 }
 
 type Param struct {
-	Name *string
+	Name string
 	Type token.TokenType
 }
 
 type Struct_Decl struct {
-	Name *string
+	Name string
 	Body *STRUCT_DEF_BLOCK
 }
 
 type Interface_Decl struct {
-	Name *string
+	Name string
 	Body *INTERFACE_DEF_BLOCK
 }
 
@@ -71,7 +73,7 @@ type Expr_stmt struct {
 func (*Expr_stmt) stmtNode() {}
 
 type Decl_stmt struct {
-	Name string
+	Name []string
 	Type token.TokenType
 }
 
@@ -134,6 +136,13 @@ type Call_expr struct {
 }
 
 func (*Call_expr) exprNode() {}
+
+type Postfix_expr struct {
+	Target Expression
+	Op     token.TokenType
+}
+
+func (*Postfix_expr) exprNode() {}
 
 type Lit_val struct {
 	Value interface{} // store parsed values

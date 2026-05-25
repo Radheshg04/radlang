@@ -1,10 +1,13 @@
 package token
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type TokenType int
 
 const (
+	INVALID TokenType = -1
 	ILLEGAL TokenType = iota
 	EOF
 	EOL
@@ -98,6 +101,8 @@ func (t Token) String() string {
 
 func (t TokenType) String() string {
 	switch t {
+	case INVALID:
+		return "INVALID"
 	case ILLEGAL:
 		return "ILLEGAL"
 	case EOF:
