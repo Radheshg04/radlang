@@ -40,7 +40,7 @@ func (p *Parser) expect(tt token.TokenType) token.Token {
 func (p *Parser) expectType() token.Token {
 	tok := p.peek()
 	switch tok.Token {
-	case token.INT, token.FLOAT, token.BOOL, token.STRING:
+	case token.INT, token.FLOAT, token.BOOL, token.STRING, token.ERR:
 		p.consume()
 		return tok
 	default:
