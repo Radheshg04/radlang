@@ -1,9 +1,6 @@
 func main() {
-    var x int
-    var y int
-    var z int
-    x := 10
-    y = 20
+    var x, y, z int
+    x, y = 10, 20
     z = x + y * 2
     z = (x + y) * 2
     x++
