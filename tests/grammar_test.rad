@@ -1,12 +1,4 @@
-type Point struct {
-    var x int
-    var y int
-}
 
-type Shape interface {
-    area() float
-    perimeter() float
-}
 
 func add(a int, b int) int {
     return a + b
