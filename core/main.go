@@ -3,10 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"radlang/interpreter"
 	"radlang/lexer"
 	"radlang/parser"
-	"radlang/semantic"
 	"strings"
 )
 
@@ -17,7 +15,7 @@ func main() {
 	// }
 	// fileName := os.Args[1]
 	// file, err := os.ReadFile(fileName)
-	file, err := os.ReadFile("../tests/arithmetic.rad")
+	file, err := os.ReadFile("../tests/grammar_test.rad")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -38,25 +36,56 @@ func main() {
 	}
 	printAST(ast)
 
-	err = semantic.Analyze(ast)
-	if err != nil {
-		fmt.Printf("\nSemantic analysis returned: %v\n", err)
-		return
-	}
+	// diagnostic := semantic.Analyze(ast)
+	// if diagnostic != nil {
+	// 	fmt.Printf("\nSemantic analysis returned: %v\n", diagnostic)
+	// 	return
+	// }
 
-	interpreter.Interpret(ast)
+	// interpreter.Interpret(ast)
 }
 
 func printAST(program *parser.Program) {
 	fmt.Println("Program")
 	for _, fn := range program.Functions {
-		fmt.Printf("  Func_Decl: %s\n", fn.Name)
-		printBlock(fn.Body, 2)
+		printFuncDecl(fn, 1)
+	}
+	for _, s := range program.Structs {
+		fmt.Printf("  Struct_Decl: %s\n", s.Name)
+		for _, field := range s.Body.Statement_Group {
+			fmt.Printf("    Decl_stmt: %v %v\n", field.Name, field.Type)
+		}
+	}
+	for _, iface := range program.Interfaces {
+		fmt.Printf("  Interface_Decl: %s\n", iface.Name)
+		for _, sig := range iface.Body.Statement_Group {
+			printFuncSignature(sig, 2)
+		}
+	}
+}
+
+func printFuncDecl(fn *parser.Func_Decl, depth int) {
+	pad := strings.Repeat("  ", depth)
+	fmt.Printf("%sFunc_Decl: %s\n", pad, fn.Signature.Name)
+	printFuncSignature(fn.Signature, depth+1)
+	printBlock(fn.Body, depth+1)
+}
+
+func printFuncSignature(sig *parser.Func_Signature, depth int) {
+	pad := strings.Repeat("  ", depth)
+	for _, p := range sig.Params {
+		fmt.Printf("%sParam: %s %v\n", pad, p.Name, p.Type)
+	}
+	if len(sig.Returns) > 0 {
+		fmt.Printf("%sReturns: %v\n", pad, sig.Returns)
 	}
 }
 
 func printBlock(block *parser.Block, depth int) {
 	pad := strings.Repeat("  ", depth)
+	if block == nil {
+		return
+	}
 	fmt.Printf("%sBlock\n", pad)
 	for _, stmt := range block.Statement_Group {
 		printStatement(stmt, depth+1)
@@ -66,16 +95,38 @@ func printBlock(block *parser.Block, depth int) {
 func printStatement(stmt parser.Statement, depth int) {
 	pad := strings.Repeat("  ", depth)
 	switch s := stmt.(type) {
+	case *parser.Control_stmt:
+		fmt.Printf("%sControl_stmt: if\n", pad)
+		printExpr(s.Expression, depth+1)
+		printBlock(s.IfBlock, depth+1)
+		if s.ElseStmt != nil {
+			fmt.Printf("%selse if\n", pad)
+			printStatement(s.ElseStmt, depth)
+		} else if s.ElseBlock != nil {
+			fmt.Printf("%selse\n", pad)
+			printBlock(s.ElseBlock, depth+1)
+		}
 	case *parser.Decl_stmt:
-		fmt.Printf("%sDecl_stmt: %s %v\n", pad, s.Name, s.Type)
+		fmt.Printf("%sDecl_stmt: %v %v\n", pad, s.Name, s.Type)
 	case *parser.Assign_stmt:
-		fmt.Printf("%sAssign_stmt: %s =\n", pad, s.Target)
-		printExpr(s.Value, depth+1)
-	case *parser.Update_stmt:
-		fmt.Printf("%sUpdate_stmt: %s %v\n", pad, s.Target, s.Op)
+		fmt.Printf("%sAssign_stmt: %v op=%v\n", pad, s.Targets, s.Op)
+		for _, v := range s.Values {
+			printExpr(v, depth+1)
+		}
+	case *parser.Loop_stmt:
+		fmt.Printf("%sLoop_stmt:\n", pad)
+		printExpr(s.Expression, depth+1)
+		printBlock(s.Loop_block, depth+1)
 	case *parser.Expr_stmt:
 		fmt.Printf("%sExpr_stmt:\n", pad)
-		printExpr(s.Expr, depth+1)
+		printExpr(s.Expression, depth+1)
+	case *parser.Jump_stmt:
+		fmt.Printf("%sJump_stmt: %v\n", pad, s.Type)
+	case *parser.Return_stmt:
+		fmt.Printf("%sReturn_stmt:\n", pad)
+		for _, v := range s.Returns {
+			printExpr(v, depth+1)
+		}
 	}
 }
 
@@ -88,9 +139,15 @@ func printExpr(expr parser.Expression, depth int) {
 		printExpr(e.Right, depth+1)
 	case *parser.Call_expr:
 		fmt.Printf("%sCall_expr: %s()\n", pad, e.Name)
+		for _, arg := range e.Args {
+			printExpr(arg, depth+1)
+		}
 	case *parser.Identifier_expr:
 		fmt.Printf("%sIdentifier_expr: %s\n", pad, e.Name)
-	case *parser.Number_lit:
-		fmt.Printf("%sNumber_lit: %s %s\n", pad, e.Type, e.Value)
+	case *parser.Postfix_expr:
+		fmt.Printf("%sPostfix_expr: %s\n", pad, e.Op)
+		printExpr(e.Target, depth+1)
+	case *parser.Lit_val:
+		fmt.Printf("%sLiteral_Val: %s %s\n", pad, e.Type, e.Value)
 	}
 }
