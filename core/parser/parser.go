@@ -81,7 +81,7 @@ func (p *Parser) parseFuncSignature() (*Func_Signature, error) {
 	// this scales badly, would need some type checker for custom types
 	switch ret.Token {
 	// single return type
-	case token.INT, token.FLOAT, token.BOOL, token.STRING:
+	case token.INT, token.FLOAT, token.BOOL, token.STRING, token.ERR:
 		val := p.expectType()
 		returns = append(returns, val.Token)
 
@@ -244,7 +244,34 @@ func (p *Parser) parseStatement() (Statement, error) {
 
 		// CONTROL_STMT
 		if p.peek().Token == token.IF {
-			return p.parseControlStatement()
+			p.expect(token.IF)
+			expr, err := p.parseExpression()
+			if err != nil {
+				return nil, err
+			}
+			ifBlock, err := p.parseBlock()
+			if err != nil {
+				return nil, err
+			}
+			if p.peek().Token == token.ELSE {
+				p.consume()
+				if p.peek().Token == token.IF {
+					elseStatement, err := p.parseStatement()
+					if err != nil {
+						return nil, err
+					}
+					return &Control_stmt{Expression: expr, IfBlock: ifBlock, ElseStmt: elseStatement.(*Control_stmt)}, nil
+				}
+				if p.peek().Token == token.L_BRACE {
+					elseBlock, err := p.parseBlock()
+					if err != nil {
+						return nil, err
+					}
+					return &Control_stmt{Expression: expr, IfBlock: ifBlock, ElseBlock: elseBlock}, nil
+
+				}
+			}
+			return &Control_stmt{Expression: expr, IfBlock: ifBlock}, nil
 		}
 
 		// EXPR_STMT
@@ -261,41 +288,6 @@ func (p *Parser) parseStatement() (Statement, error) {
 		return expr_stmt, nil
 
 	}
-}
-
-func (p *Parser) parseControlStatement() (*Control_stmt, error) {
-	p.expect(token.IF)
-	expr, err := p.parseExpression()
-	if err != nil {
-		return nil, err
-	}
-	ifBlock, err := p.parseBlock()
-	if err != nil {
-		return nil, err
-	}
-	// if p.peek().Token == token.EOL {
-	// 	p.consume()
-	// 	return &Control_stmt{Expression: expr, IfBlock: ifBlock}, nil
-	// }
-	if p.peek().Token == token.ELSE {
-		p.consume()
-		if p.peek().Token == token.IF {
-			elseStatement, err := p.parseControlStatement()
-			if err != nil {
-				return nil, err
-			}
-			return &Control_stmt{Expression: expr, IfBlock: ifBlock, ElseStmt: elseStatement}, nil
-		}
-		if p.peek().Token == token.L_BRACE {
-			elseBlock, err := p.parseBlock()
-			if err != nil {
-				return nil, err
-			}
-			return &Control_stmt{Expression: expr, IfBlock: ifBlock, ElseBlock: elseBlock}, nil
-
-		}
-	}
-	return &Control_stmt{Expression: expr, IfBlock: ifBlock}, nil
 }
 
 func (p *Parser) parseExpression() (Expression, error) {
@@ -387,13 +379,7 @@ func (p *Parser) parseFactor() (Expression, error) {
 		return &Lit_val{Value: tok.Lexeme, Type: token.STRING}, nil
 	case token.TRUE, token.FALSE:
 		p.consume()
-		return &Lit_val{Value: tok.Lexeme, Type: token.BOOL}, nil
-	case token.ERR:
-		p.consume()
-		p.expect(token.L_PAREN)
-		str := p.expect(token.STRING_LIT)
-		p.expect(token.R_PAREN)
-		return &Lit_val{Value: str.Lexeme, Type: token.ERR}, nil
+		return &Lit_val{Value: tok.Lexeme, Type: token.BOOL_LIT}, nil
 
 	// parse postfix op, fn call and identifier expr
 	case token.IDENTIFIER:
