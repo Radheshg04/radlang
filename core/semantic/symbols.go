@@ -12,6 +12,8 @@ type Scope struct {
 
 type SemanticCtx struct {
 	Scope       *Scope
+	CurrentFunc *FuncSymbol
+	LoopDepth   int
 	Diagnostics []Diagnostic
 }
 
@@ -25,12 +27,13 @@ type VarSymbol struct {
 	Declared bool
 }
 
-func (*VarSymbol) symbol()
+func (*VarSymbol) symbol() {}
 
 type FuncSymbol struct {
-	Params  map[string]token.TokenType
-	Returns []token.TokenType
-	Decl    *parser.Func_Decl
+	Params    map[string]token.TokenType
+	Returns   []token.TokenType
+	Decl      *parser.Func_Decl
+	isBuiltin bool
 }
 
-func (*FuncSymbol) symbol()
+func (*FuncSymbol) symbol() {}

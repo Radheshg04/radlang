@@ -12,8 +12,8 @@ func RegisterProgram(ctx *SemanticCtx, p *parser.Program) {
 }
 
 func RegisterFunction(ctx *SemanticCtx, function *parser.Func_Decl) {
-	if function, ok := ctx.Scope.SymbolTable[function.Signature.Name]; ok {
-		if isBuiltinFunc(function) {
+	if existing, ok := ctx.Scope.SymbolTable[function.Signature.Name]; ok {
+		if isBuiltinFunc(existing) {
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrRedeclaredBuiltinFunction))
 			return
 		}
@@ -25,11 +25,5 @@ func RegisterFunction(ctx *SemanticCtx, function *parser.Func_Decl) {
 	params := resolveParams(function.Signature.Params)
 
 	funcSym := &FuncSymbol{Params: params, Returns: function.Signature.Returns, Decl: function}
-	ctx.CurrentFunc, ctx.Scope.SymbolTable[function.Signature.Name] = funcSym, funcSym
-
-	childCtx := newChildCtx(ctx)
-	for name, typ := range ctx.CurrentFunc.Params {
-		childCtx.Scope.SymbolTable[name] = &VarSymbol{Type: typ, Declared: true}
-	}
-	ctx.Diagnostics = append(ctx.Diagnostics, childCtx.Diagnostics...)
+	ctx.Scope.SymbolTable[function.Signature.Name] = funcSym
 }
