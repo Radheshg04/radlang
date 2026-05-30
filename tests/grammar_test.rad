@@ -9,16 +9,14 @@ func divide(a float, b float) (float, err) {
 }
 
 func main() {
-    var x int
-    var y float
     var flag bool
     var msg string
     var e err
 
     x := 10
     y := 3.14
-    flag := true
-    msg := "hello"
+    flag = true
+    msg = "hello"
 
     x = x + 5 * 2
     x = (x + 1) * 3
