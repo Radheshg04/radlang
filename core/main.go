@@ -5,6 +5,7 @@ import (
 	"os"
 	"radlang/lexer"
 	"radlang/parser"
+	"radlang/semantic"
 	"strings"
 )
 
@@ -36,11 +37,9 @@ func main() {
 	}
 	printAST(ast)
 
-	// diagnostic := semantic.Analyze(ast)
-	// if diagnostic != nil {
-	// 	fmt.Printf("\nSemantic analysis returned: %v\n", diagnostic)
-	// 	return
-	// }
+	report := semantic.Analyze(ast)
+	fmt.Printf("Semantic Analysis returned: ")
+	semantic.Report(report)
 
 	// interpreter.Interpret(ast)
 }

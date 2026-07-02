@@ -9,161 +9,205 @@ import (
 func funcWith(name string, stmts ...parser.Statement) *parser.Program {
 	return &parser.Program{
 		Functions: []*parser.Func_Decl{
-			{Name: name, Body: &parser.Block{Statement_Group: stmts}},
+			{
+				Signature: &parser.Func_Signature{Name: name},
+				Body:      &parser.Block{Statement_Group: stmts},
+			},
 		},
 	}
 }
 
+func hasErrors(diags []Diagnostic) bool {
+	for _, d := range diags {
+		if d.Severity == Error {
+			return true
+		}
+	}
+	return false
+}
+
 func TestAnalyzeValidProgram(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "x", Type: token.INT},
-		&parser.Assign_stmt{Target: "x", Value: &parser.Number_lit{Value: "5", Type: token.INT}},
+		&parser.Decl_stmt{Name: []string{"x"}, Type: token.INT},
+		&parser.Assign_stmt{
+			Targets: []string{"x"},
+			Values:  []parser.Expression{&parser.Lit_val{Value: "5", Type: token.INT}},
+			Op:      token.ASSIGNMENT,
+		},
 	)
-	if err := Analyze(prog); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if diags := Analyze(prog); hasErrors(diags) {
+		t.Fatalf("unexpected errors: %v", diags)
 	}
 }
 
 func TestAnalyzeRedeclaredFunction(t *testing.T) {
 	prog := &parser.Program{
 		Functions: []*parser.Func_Decl{
-			{Name: "foo", Body: &parser.Block{}},
-			{Name: "foo", Body: &parser.Block{}},
+			{Signature: &parser.Func_Signature{Name: "foo"}, Body: &parser.Block{}},
+			{Signature: &parser.Func_Signature{Name: "foo"}, Body: &parser.Block{}},
 		},
 	}
-	if err := Analyze(prog); err == nil {
+	if diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for redeclared function")
 	}
 }
 
 func TestAnalyzeRedeclaredVariable(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "x", Type: token.INT},
-		&parser.Decl_stmt{Name: "x", Type: token.INT},
+		&parser.Decl_stmt{Name: []string{"x"}, Type: token.INT},
+		&parser.Decl_stmt{Name: []string{"x"}, Type: token.INT},
 	)
-	if err := Analyze(prog); err == nil {
+	if diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for redeclared variable")
 	}
 }
 
-func TestAnalyzeAssignBeforeDeclaration(t *testing.T) {
+func TestAnalyzeAssignUndeclaredVariable(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Assign_stmt{Target: "x", Value: &parser.Number_lit{Value: "1", Type: token.INT}},
+		&parser.Assign_stmt{
+			Targets: []string{"x"},
+			Values:  []parser.Expression{&parser.Lit_val{Value: "1", Type: token.INT}},
+			Op:      token.ASSIGNMENT,
+		},
 	)
-	if err := Analyze(prog); err == nil {
-		t.Fatal("expected error for assignment before declaration")
+	if diags := Analyze(prog); !hasErrors(diags) {
+		t.Fatal("expected error for assignment to undeclared variable")
 	}
 }
 
-func TestAnalyzeTypeMismatch(t *testing.T) {
+func TestAnalyzeWalrusValid(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "x", Type: token.INT},
-		&parser.Assign_stmt{Target: "x", Value: &parser.Number_lit{Value: "3.14", Type: token.FLOAT}},
+		&parser.Assign_stmt{
+			Targets: []string{"x"},
+			Values:  []parser.Expression{&parser.Lit_val{Value: "5", Type: token.INT}},
+			Op:      token.WALRUS,
+		},
 	)
-	if err := Analyze(prog); err == nil {
-		t.Fatal("expected error for type mismatch")
+	if diags := Analyze(prog); hasErrors(diags) {
+		t.Fatalf("unexpected errors for valid walrus: %v", diags)
 	}
 }
 
-func TestAnalyzeUpdateUndeclaredVariable(t *testing.T) {
+func TestAnalyzeWalrusNoNewVars(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Update_stmt{Target: "x", Op: token.PLUSPLUS},
+		&parser.Decl_stmt{Name: []string{"x"}, Type: token.INT},
+		&parser.Assign_stmt{
+			Targets: []string{"x"},
+			Values:  []parser.Expression{&parser.Lit_val{Value: "5", Type: token.INT}},
+			Op:      token.WALRUS,
+		},
 	)
-	if err := Analyze(prog); err == nil {
-		t.Fatal("expected error for update on undeclared variable")
-	}
-}
-
-func TestAnalyzeUpdateNonNumeric(t *testing.T) {
-	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "s", Type: token.STRING},
-		&parser.Update_stmt{Target: "s", Op: token.PLUSPLUS},
-	)
-	if err := Analyze(prog); err == nil {
-		t.Fatal("expected error for update on string variable")
-	}
-}
-
-func TestAnalyzeUpdateInt(t *testing.T) {
-	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "i", Type: token.INT},
-		&parser.Update_stmt{Target: "i", Op: token.PLUSPLUS},
-	)
-	if err := Analyze(prog); err != nil {
-		t.Fatalf("unexpected error for int update: %v", err)
-	}
-}
-
-func TestAnalyzeUpdateFloat(t *testing.T) {
-	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "f", Type: token.FLOAT},
-		&parser.Update_stmt{Target: "f", Op: token.MINUSMINUS},
-	)
-	if err := Analyze(prog); err != nil {
-		t.Fatalf("unexpected error for float update: %v", err)
+	if diags := Analyze(prog); !hasErrors(diags) {
+		t.Fatal("expected error for walrus with no new variables")
 	}
 }
 
 func TestAnalyzeCallUndeclaredFunction(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Expr_stmt{Expr: &parser.Call_expr{Name: "notDefined"}},
+		&parser.Expr_stmt{Expression: &parser.Call_expr{Name: "notDefined"}},
 	)
-	if err := Analyze(prog); err == nil {
+	if diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for call to undeclared function")
 	}
 }
 
 func TestAnalyzeCallBuiltin(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Expr_stmt{Expr: &parser.Call_expr{Name: "print"}},
+		&parser.Expr_stmt{Expression: &parser.Call_expr{Name: "print"}},
 	)
-	if err := Analyze(prog); err != nil {
-		t.Fatalf("unexpected error for builtin print call: %v", err)
+	if diags := Analyze(prog); hasErrors(diags) {
+		t.Fatalf("unexpected errors for builtin print call: %v", diags)
 	}
 }
 
 func TestAnalyzeCallDeclaredFunction(t *testing.T) {
 	prog := &parser.Program{
 		Functions: []*parser.Func_Decl{
-			{Name: "helper", Body: &parser.Block{}},
-			{Name: "main", Body: &parser.Block{
-				Statement_Group: []parser.Statement{
-					&parser.Expr_stmt{Expr: &parser.Call_expr{Name: "helper"}},
+			{Signature: &parser.Func_Signature{Name: "helper"}, Body: &parser.Block{}},
+			{
+				Signature: &parser.Func_Signature{Name: "main"},
+				Body: &parser.Block{
+					Statement_Group: []parser.Statement{
+						&parser.Expr_stmt{Expression: &parser.Call_expr{Name: "helper"}},
+					},
 				},
-			}},
+			},
 		},
 	}
-	if err := Analyze(prog); err != nil {
-		t.Fatalf("unexpected error for call to declared function: %v", err)
+	if diags := Analyze(prog); hasErrors(diags) {
+		t.Fatalf("unexpected errors for call to declared function: %v", diags)
 	}
 }
 
 func TestAnalyzeBinaryExprTypeMismatch(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "x", Type: token.INT},
 		&parser.Assign_stmt{
-			Target: "x",
-			Value: &parser.Binary_expr{
-				Left:  &parser.Number_lit{Value: "1", Type: token.INT},
-				Op:    token.PLUS,
-				Right: &parser.Number_lit{Value: "2.0", Type: token.FLOAT},
+			Targets: []string{"x"},
+			Values: []parser.Expression{
+				&parser.Binary_expr{
+					Left:  &parser.Lit_val{Value: "1", Type: token.INT},
+					Op:    token.PLUS,
+					Right: &parser.Lit_val{Value: "2.0", Type: token.FLOAT},
+				},
 			},
+			Op: token.WALRUS,
 		},
 	)
-	if err := Analyze(prog); err == nil {
+	if diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for binary expr with mismatched types")
 	}
 }
 
 func TestAnalyzeUndeclaredVarInExpr(t *testing.T) {
 	prog := funcWith("main",
-		&parser.Decl_stmt{Name: "x", Type: token.INT},
 		&parser.Assign_stmt{
-			Target: "x",
-			Value:  &parser.Identifier_expr{Name: "y"},
+			Targets: []string{"x"},
+			Values:  []parser.Expression{&parser.Identifier_expr{Name: "y"}},
+			Op:      token.WALRUS,
 		},
 	)
-	if err := Analyze(prog); err == nil {
+	if diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for undeclared variable in expression")
+	}
+}
+
+func TestAnalyzeBreakOutsideLoop(t *testing.T) {
+	prog := funcWith("main",
+		&parser.Jump_stmt{Type: token.BREAK},
+	)
+	if diags := Analyze(prog); !hasErrors(diags) {
+		t.Fatal("expected error for break outside loop")
+	}
+}
+
+func TestAnalyzeReturnTypeMismatch(t *testing.T) {
+	prog := &parser.Program{
+		Functions: []*parser.Func_Decl{
+			{
+				Signature: &parser.Func_Signature{Name: "foo", Returns: []token.TokenType{token.INT}},
+				Body: &parser.Block{
+					Statement_Group: []parser.Statement{
+						&parser.Return_stmt{Returns: []parser.Expression{
+							&parser.Lit_val{Value: "3.14", Type: token.FLOAT},
+						}},
+					},
+				},
+			},
+		},
+	}
+	if diags := Analyze(prog); !hasErrors(diags) {
+		t.Fatal("expected error for return type mismatch")
+	}
+}
+
+func TestAnalyzeIfConditionNotBool(t *testing.T) {
+	prog := funcWith("main",
+		&parser.Control_stmt{
+			Expression: &parser.Lit_val{Value: "5", Type: token.INT},
+			IfBlock:    &parser.Block{},
+		},
+	)
+	if diags := Analyze(prog); !hasErrors(diags) {
+		t.Fatal("expected error for non-bool if condition")
 	}
 }

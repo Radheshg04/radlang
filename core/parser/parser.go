@@ -254,15 +254,16 @@ func (p *Parser) parseStatement() (Statement, error) {
 				return nil, err
 			}
 			if p.peek().Token == token.ELSE {
-				p.consume()
-				if p.peek().Token == token.IF {
+				if p.peekAt(1).Token == token.IF {
+					p.consume()
 					elseStatement, err := p.parseStatement()
 					if err != nil {
 						return nil, err
 					}
 					return &Control_stmt{Expression: expr, IfBlock: ifBlock, ElseStmt: elseStatement.(*Control_stmt)}, nil
 				}
-				if p.peek().Token == token.L_BRACE {
+				if p.peekAt(1).Token == token.L_BRACE {
+					p.consume()
 					elseBlock, err := p.parseBlock()
 					if err != nil {
 						return nil, err
@@ -270,6 +271,7 @@ func (p *Parser) parseStatement() (Statement, error) {
 					return &Control_stmt{Expression: expr, IfBlock: ifBlock, ElseBlock: elseBlock}, nil
 
 				}
+				return nil, fmt.Errorf("unexpected ELSE on line: %d", p.consume().Line)
 			}
 			return &Control_stmt{Expression: expr, IfBlock: ifBlock}, nil
 		}
@@ -377,9 +379,9 @@ func (p *Parser) parseFactor() (Expression, error) {
 	case token.STRING_LIT:
 		p.consume()
 		return &Lit_val{Value: tok.Lexeme, Type: token.STRING}, nil
-	case token.TRUE, token.FALSE:
+	case token.BOOL_LIT:
 		p.consume()
-		return &Lit_val{Value: tok.Lexeme, Type: token.BOOL_LIT}, nil
+		return &Lit_val{Value: tok.Lexeme, Type: token.BOOL}, nil
 
 	// parse postfix op, fn call and identifier expr
 	case token.IDENTIFIER:
