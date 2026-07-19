@@ -113,7 +113,7 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrExpectedOneExpr))
 			return
 		}
-		if exprType[0] != token.BOOL_LIT {
+		if exprType[0] != token.BOOL {
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrIfExpressionNotBool))
 			return
 		}
@@ -189,7 +189,7 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []token.TokenTy
 
 		switch e.Op {
 		case token.EQ, token.NEQ, token.GT, token.GTE, token.LT, token.LTE:
-			tokens = append(tokens, token.BOOL_LIT)
+			tokens = append(tokens, token.BOOL)
 		default:
 			tokens = append(tokens, leftTok...)
 		}
