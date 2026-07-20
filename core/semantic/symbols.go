@@ -2,7 +2,6 @@ package semantic
 
 import (
 	"radlang/parser"
-	"radlang/token"
 )
 
 type Scope struct {
@@ -22,7 +21,7 @@ type Symbol interface {
 }
 
 type VarSymbol struct {
-	Type     token.TokenType
+	Type     ValueType
 	Value    interface{}
 	Declared bool
 }
@@ -30,8 +29,8 @@ type VarSymbol struct {
 func (*VarSymbol) symbol() {}
 
 type FuncSymbol struct {
-	Params    map[string]token.TokenType
-	Returns   []token.TokenType
+	Params    map[string]ValueType
+	Returns   []ValueType
 	Decl      *parser.Func_Decl
 	isBuiltin bool
 }

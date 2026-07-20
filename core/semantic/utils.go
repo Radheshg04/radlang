@@ -17,15 +17,23 @@ func resolve(scope *Scope, name string) (Symbol, error) {
 	return nil, fmt.Errorf("%s could not be resolved", name)
 }
 
-func resolveParams(Params []*parser.Param) map[string]token.TokenType {
+func resolveParams(Params []*parser.Param) map[string]ValueType {
 	if Params == nil {
 		return nil
 	}
-	paramTable := make(map[string]token.TokenType)
+	paramTable := make(map[string]ValueType)
 	for _, param := range Params {
-		paramTable[param.Name] = param.Type
+		paramTable[param.Name] = resolveType(param.Type)
 	}
 	return paramTable
+}
+
+func resolveTypes(Types []token.TokenType) []ValueType {
+	out := make([]ValueType, len(Types))
+	for i, t := range Types {
+		out[i] = resolveType(t)
+	}
+	return out
 }
 
 func newChildCtx(ctx *SemanticCtx) *SemanticCtx {
@@ -45,4 +53,21 @@ func symbolExistAs[T any](ctx *SemanticCtx, target string) bool {
 	_, ok = sym.(T)
 
 	return ok
+}
+
+func resolveType(tok token.TokenType) ValueType {
+	switch tok {
+	case token.INT_LIT:
+		return IntType
+	case token.FLOAT_LIT:
+		return FloatType
+	case token.BOOL_LIT:
+		return BoolType
+	case token.ERROR_LITERAL:
+		return ErrorType
+	case token.STRING_LIT:
+		return StringType
+	default:
+		return InvalidType
+	}
 }
