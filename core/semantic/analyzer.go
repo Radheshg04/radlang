@@ -49,7 +49,7 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 		if s.Op == token.WALRUS {
 			// track if new variables on left
 			newVar := false
-			var exprTypes []token.TokenType
+			var exprTypes []ValueType
 			// return inference
 			for _, value := range s.Values {
 				exprTypes = append(exprTypes, AnalyzeExpression(ctx, value)...)
@@ -102,7 +102,7 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 			}
 			ctx.Scope.SymbolTable[name] =
 				&VarSymbol{
-					Type:     s.Type,
+					Type:     resolveType(s.Type),
 					Declared: true,
 				}
 		}
@@ -113,7 +113,7 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrExpectedOneExpr))
 			return
 		}
-		if exprType[0] != token.BOOL {
+		if exprType[0] != BoolType {
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrIfExpressionNotBool))
 			return
 		}
@@ -133,7 +133,7 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 		ctx.LoopDepth -= 1
 
 	case *parser.Return_stmt:
-		var exprTypes []token.TokenType
+		var exprTypes []ValueType
 		for _, expr := range s.Returns {
 			exprTypes = append(exprTypes, AnalyzeExpression(ctx, expr)...)
 		}
@@ -170,11 +170,11 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 	}
 }
 
-func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []token.TokenType {
-	var tokens []token.TokenType
+func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []ValueType {
+	var Type []ValueType
 	switch e := expr.(type) {
 	case *parser.Lit_val:
-		tokens = append(tokens, e.Type)
+		Type = append(Type, resolveType(e.Type))
 
 	case *parser.Binary_expr:
 		leftTok := AnalyzeExpression(ctx, e.Left)
@@ -189,9 +189,9 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []token.TokenTy
 
 		switch e.Op {
 		case token.EQ, token.NEQ, token.GT, token.GTE, token.LT, token.LTE:
-			tokens = append(tokens, token.BOOL)
+			Type = append(Type, BoolType)
 		default:
-			tokens = append(tokens, leftTok...)
+			Type = append(Type, leftTok...)
 		}
 
 	case *parser.Call_expr:
@@ -201,7 +201,7 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []token.TokenTy
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrUndefined))
 			return nil
 		}
-		tokens = append(tokens, funcSym.Returns...)
+		Type = append(Type, funcSym.Returns...)
 
 	case *parser.Identifier_expr:
 		sym, err := resolve(ctx.Scope, e.Name)
@@ -214,10 +214,10 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []token.TokenTy
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrUndefined))
 			return nil
 		}
-		tokens = append(tokens, varSym.Type)
+		Type = append(Type, varSym.Type)
 
 	case *parser.Postfix_expr:
 
 	}
-	return tokens
+	return Type
 }
