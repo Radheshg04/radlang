@@ -379,7 +379,7 @@ func (p *Parser) parseFactor() (Expression, error) {
 	case token.STRING_LIT:
 		p.consume()
 		return &Lit_val{Value: tok.Lexeme, Type: token.STRING}, nil
-	case token.BOOL_LIT:
+	case token.TRUE, token.FALSE:
 		p.consume()
 		return &Lit_val{Value: tok.Lexeme, Type: token.BOOL}, nil
 
