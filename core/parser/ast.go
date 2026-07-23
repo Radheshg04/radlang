@@ -14,6 +14,7 @@ type Program struct {
 type Func_Decl struct {
 	Signature *Func_Signature
 	Body      *Block
+	Symbol    interface{} // FuncSymbol
 }
 
 type Func_Signature struct {
@@ -46,6 +47,7 @@ type INTERFACE_DEF_BLOCK struct {
 
 type Block struct {
 	Statement_Group []Statement
+	Scope           interface{} // semantic.Scope
 }
 
 type Statement interface {
@@ -89,7 +91,7 @@ type Control_stmt struct {
 func (*Control_stmt) stmtNode() {}
 
 type Jump_stmt struct {
-	Type token.TokenType
+	Type token.TokenType // break/continue
 }
 
 func (*Jump_stmt) stmtNode() {}
@@ -130,7 +132,7 @@ type Call_expr struct {
 func (*Call_expr) exprNode() {}
 
 type Postfix_expr struct {
-	Target Expression
+	Target *Identifier_expr
 	Op     token.TokenType
 }
 
