@@ -14,6 +14,7 @@ type SemanticCtx struct {
 	CurrentFunc *FuncSymbol
 	LoopDepth   int
 	Diagnostics []Diagnostic
+	slotCounter *int
 }
 
 type Symbol interface {
@@ -21,18 +22,20 @@ type Symbol interface {
 }
 
 type VarSymbol struct {
+	Slot     int
 	Type     ValueType
-	Value    interface{}
 	Declared bool
 }
 
 func (*VarSymbol) symbol() {}
 
 type FuncSymbol struct {
+	ID        int
 	Params    map[string]ValueType
 	Returns   []ValueType
 	Decl      *parser.Func_Decl
 	isBuiltin bool
+	Slots     int
 }
 
 func (*FuncSymbol) symbol() {}

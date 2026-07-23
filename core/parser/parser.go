@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"radlang/token"
+	"strconv"
 )
 
 type Node interface{}
@@ -372,16 +373,33 @@ func (p *Parser) parseFactor() (Expression, error) {
 	// parse literals
 	case token.INT_LIT:
 		p.consume()
-		return &Lit_val{Value: tok.Lexeme, Type: token.INT}, nil
+		lit, err := strconv.ParseInt(tok.Lexeme, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Lit_val{Value: lit, Type: token.INT}, nil
 	case token.FLOAT_LIT:
 		p.consume()
-		return &Lit_val{Value: tok.Lexeme, Type: token.FLOAT}, nil
+		lit, err := strconv.ParseFloat(tok.Lexeme, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		return &Lit_val{Value: lit, Type: token.FLOAT}, nil
 	case token.STRING_LIT:
 		p.consume()
 		return &Lit_val{Value: tok.Lexeme, Type: token.STRING}, nil
 	case token.TRUE, token.FALSE:
 		p.consume()
-		return &Lit_val{Value: tok.Lexeme, Type: token.BOOL}, nil
+		var lit bool
+		if tok.Token == token.TRUE {
+			lit = true
+		} else {
+			lit = false
+		}
+
+		return &Lit_val{Value: lit, Type: token.BOOL}, nil
 
 	// parse postfix op, fn call and identifier expr
 	case token.IDENTIFIER:

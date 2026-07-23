@@ -35,7 +35,7 @@ func TestAnalyzeValidProgram(t *testing.T) {
 			Op:      token.ASSIGNMENT,
 		},
 	)
-	if diags := Analyze(prog); hasErrors(diags) {
+	if _, diags := Analyze(prog); hasErrors(diags) {
 		t.Fatalf("unexpected errors: %v", diags)
 	}
 }
@@ -47,7 +47,7 @@ func TestAnalyzeRedeclaredFunction(t *testing.T) {
 			{Signature: &parser.Func_Signature{Name: "foo"}, Body: &parser.Block{}},
 		},
 	}
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for redeclared function")
 	}
 }
@@ -57,7 +57,7 @@ func TestAnalyzeRedeclaredVariable(t *testing.T) {
 		&parser.Decl_stmt{Name: []string{"x"}, Type: token.INT},
 		&parser.Decl_stmt{Name: []string{"x"}, Type: token.INT},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for redeclared variable")
 	}
 }
@@ -70,7 +70,7 @@ func TestAnalyzeAssignUndeclaredVariable(t *testing.T) {
 			Op:      token.ASSIGNMENT,
 		},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for assignment to undeclared variable")
 	}
 }
@@ -83,7 +83,7 @@ func TestAnalyzeWalrusValid(t *testing.T) {
 			Op:      token.WALRUS,
 		},
 	)
-	if diags := Analyze(prog); hasErrors(diags) {
+	if _, diags := Analyze(prog); hasErrors(diags) {
 		t.Fatalf("unexpected errors for valid walrus: %v", diags)
 	}
 }
@@ -97,7 +97,7 @@ func TestAnalyzeWalrusNoNewVars(t *testing.T) {
 			Op:      token.WALRUS,
 		},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for walrus with no new variables")
 	}
 }
@@ -106,7 +106,7 @@ func TestAnalyzeCallUndeclaredFunction(t *testing.T) {
 	prog := funcWith("main",
 		&parser.Expr_stmt{Expression: &parser.Call_expr{Name: "notDefined"}},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for call to undeclared function")
 	}
 }
@@ -115,7 +115,7 @@ func TestAnalyzeCallBuiltin(t *testing.T) {
 	prog := funcWith("main",
 		&parser.Expr_stmt{Expression: &parser.Call_expr{Name: "print"}},
 	)
-	if diags := Analyze(prog); hasErrors(diags) {
+	if _, diags := Analyze(prog); hasErrors(diags) {
 		t.Fatalf("unexpected errors for builtin print call: %v", diags)
 	}
 }
@@ -134,7 +134,7 @@ func TestAnalyzeCallDeclaredFunction(t *testing.T) {
 			},
 		},
 	}
-	if diags := Analyze(prog); hasErrors(diags) {
+	if _, diags := Analyze(prog); hasErrors(diags) {
 		t.Fatalf("unexpected errors for call to declared function: %v", diags)
 	}
 }
@@ -153,7 +153,7 @@ func TestAnalyzeBinaryExprTypeMismatch(t *testing.T) {
 			Op: token.WALRUS,
 		},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for binary expr with mismatched types")
 	}
 }
@@ -166,7 +166,7 @@ func TestAnalyzeUndeclaredVarInExpr(t *testing.T) {
 			Op:      token.WALRUS,
 		},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for undeclared variable in expression")
 	}
 }
@@ -175,7 +175,7 @@ func TestAnalyzeBreakOutsideLoop(t *testing.T) {
 	prog := funcWith("main",
 		&parser.Jump_stmt{Type: token.BREAK},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for break outside loop")
 	}
 }
@@ -195,7 +195,7 @@ func TestAnalyzeReturnTypeMismatch(t *testing.T) {
 			},
 		},
 	}
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for return type mismatch")
 	}
 }
@@ -207,7 +207,7 @@ func TestAnalyzeIfConditionNotBool(t *testing.T) {
 			IfBlock:    &parser.Block{},
 		},
 	)
-	if diags := Analyze(prog); !hasErrors(diags) {
+	if _, diags := Analyze(prog); !hasErrors(diags) {
 		t.Fatal("expected error for non-bool if condition")
 	}
 }

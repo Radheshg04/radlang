@@ -30,6 +30,7 @@ var diagnosticMessages = map[DiagnosticCode]string{
 	ErrMismatchTypesInExpr:       "mismatched types in expression",
 	ErrUndefined:                 "undefined reference",
 	WarnUnreachableCode:          "unreachable code",
+	ErrPostfixOnNonNumeric:       "cannot perform posfix op on non numeric",
 }
 
 type Diagnostic struct {
@@ -62,6 +63,7 @@ const (
 	ErrBadReturnType          DiagnosticCode = "RL411"
 	ErrJumpOutsideFor         DiagnosticCode = "RL412"
 	ErrInvalidExprStmt        DiagnosticCode = "RL413"
+	ErrPostfixOnNonNumeric    DiagnosticCode = "RL414"
 
 	// Expressions
 	ErrInvalidOperand      DiagnosticCode = "RL501"
@@ -82,7 +84,7 @@ func NewRLDiagnostic(code DiagnosticCode) *Diagnostic {
 		ErrUnusedDeclaredVariable, ErrRedeclaredVariables, ErrIdentNotDeclared,
 		ErrNoNewVariablesOnWalrus, ErrTooManyReturnValues, ErrNotEnoughReturnValues,
 		ErrReturnOutsideBlock, ErrBadReturnType, ErrJumpOutsideFor, ErrInvalidExprStmt,
-		ErrInvalidOperand, ErrMismatchTypesInExpr, ErrUndefined:
+		ErrPostfixOnNonNumeric, ErrInvalidOperand, ErrMismatchTypesInExpr, ErrUndefined:
 		diagnostic.Severity = Error
 	// Case Warn
 	case WarnUnreachableCode:
