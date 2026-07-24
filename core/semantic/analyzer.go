@@ -1,18 +1,17 @@
 package semantic
 
 import (
-	"fmt"
 	"radlang/parser"
 	"radlang/token"
 )
 
-func Analyze(p *parser.Program) []Diagnostic {
+func Analyze(p *parser.Program) (*Scope, []Diagnostic) {
 	globalScope := Scope{SymbolTable: make(map[string]Symbol)}
 	ctx := &SemanticCtx{Scope: &globalScope, Diagnostics: []Diagnostic{}}
 	initBuiltins(ctx)
 	RegisterProgram(ctx, p)
 	AnalyzeProgram(ctx, p)
-	return ctx.Diagnostics
+	return &globalScope, ctx.Diagnostics
 }
 
 func AnalyzeProgram(ctx *SemanticCtx, p *parser.Program) {
@@ -21,15 +20,20 @@ func AnalyzeProgram(ctx *SemanticCtx, p *parser.Program) {
 
 func AnalyzeFunctions(ctx *SemanticCtx, functions []*parser.Func_Decl) {
 	for _, function := range functions {
+		slotCounter := 0
 		ctx.CurrentFunc = ctx.Scope.SymbolTable[function.Signature.Name].(*FuncSymbol)
 
 		childCtx := newChildCtx(ctx)
+		childCtx.slotCounter = &slotCounter
+
 		for name, typ := range ctx.CurrentFunc.Params {
-			childCtx.Scope.SymbolTable[name] = &VarSymbol{Type: typ, Declared: true}
+			childCtx.Scope.SymbolTable[name] = &VarSymbol{Slot: getNextSlot(childCtx), Type: typ, Declared: true}
 		}
 		for _, stmt := range function.Body.Statement_Group {
 			AnalyzeStatement(childCtx, stmt)
 		}
+		function.Body.Scope = childCtx.Scope
+		ctx.CurrentFunc.Slots = *childCtx.slotCounter
 		ctx.Diagnostics = append(ctx.Diagnostics, childCtx.Diagnostics...)
 	}
 }
@@ -39,6 +43,7 @@ func AnalyzeBlock(ctx *SemanticCtx, block *parser.Block) {
 	for _, stmt := range block.Statement_Group {
 		AnalyzeStatement(childCtx, stmt)
 	}
+	block.Scope = childCtx.Scope
 	ctx.Diagnostics = append(ctx.Diagnostics, childCtx.Diagnostics...)
 
 }
@@ -46,32 +51,38 @@ func AnalyzeBlock(ctx *SemanticCtx, block *parser.Block) {
 func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 	switch s := stmt.(type) {
 	case *parser.Assign_stmt:
+
+		var exprTypes []ValueType
+		// return inference
+		for _, value := range s.Values {
+			exprTypes = append(exprTypes, AnalyzeExpression(ctx, value)...)
+		}
+
+		if len(exprTypes) != len(s.Targets) {
+			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrMismatchTypesInExpr))
+			return
+		}
+
 		if s.Op == token.WALRUS {
 			// track if new variables on left
 			newVar := false
-			var exprTypes []ValueType
-			// return inference
-			for _, value := range s.Values {
-				exprTypes = append(exprTypes, AnalyzeExpression(ctx, value)...)
-			}
-
-			if len(exprTypes) != len(s.Targets) {
-				ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrMismatchTypesInExpr))
-				return
-			}
-
 			for i, target := range s.Targets {
 				// new variable on left
 				if !symbolExistAs[(*VarSymbol)](ctx, target) {
 					newVar = true
+					ctx.Scope.SymbolTable[target] =
+						&VarSymbol{
+							Slot:     getNextSlot(ctx),
+							Type:     exprTypes[i],
+							Declared: true,
+						}
+					continue
 				}
 
-				ctx.Scope.SymbolTable[target] =
-					&VarSymbol{
-						Type:     exprTypes[i],
-						Value:    s.Values[i],
-						Declared: true,
-					}
+				if ctx.Scope.SymbolTable[target].(*VarSymbol).Type != exprTypes[i] {
+					ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrMismatchTypesInExpr))
+					continue
+				}
 			}
 			if !newVar {
 				ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrNoNewVariablesOnWalrus))
@@ -82,8 +93,10 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 					ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrIdentNotDeclared))
 					continue
 				}
-				ctx.Scope.SymbolTable[target].(*VarSymbol).Value = s.Values[i]
-
+				if ctx.Scope.SymbolTable[target].(*VarSymbol).Type != exprTypes[i] {
+					ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrMismatchTypesInExpr))
+					continue
+				}
 			}
 		}
 
@@ -102,6 +115,7 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 			}
 			ctx.Scope.SymbolTable[name] =
 				&VarSymbol{
+					Slot:     getNextSlot(ctx),
 					Type:     resolveType(s.Type),
 					Declared: true,
 				}
@@ -139,7 +153,6 @@ func AnalyzeStatement(ctx *SemanticCtx, stmt parser.Statement) {
 		}
 
 		if len(exprTypes) < len(ctx.CurrentFunc.Returns) {
-			fmt.Print(exprTypes, ctx.CurrentFunc.Returns)
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrNotEnoughReturnValues))
 			return
 		}
@@ -174,6 +187,25 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []ValueType {
 	var Type []ValueType
 	switch e := expr.(type) {
 	case *parser.Lit_val:
+		var val interface{}
+		var ok bool
+		switch e.Type {
+		case token.INT:
+			val, ok = e.Value.(int64)
+		case token.FLOAT:
+			val, ok = e.Value.(float64)
+		case token.BOOL:
+			val, ok = e.Value.(bool)
+		case token.STRING:
+			val, ok = e.Value.(string)
+		default:
+			panic("unknown type found in literal value")
+		}
+		if !ok {
+			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrMismatchTypesInExpr))
+		}
+
+		e.Value = val
 		Type = append(Type, resolveType(e.Type))
 
 	case *parser.Binary_expr:
@@ -195,7 +227,7 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []ValueType {
 		}
 
 	case *parser.Call_expr:
-		sym, err := resolve(ctx.Scope, e.Name)
+		sym, err := Resolve(ctx.Scope, e.Name)
 		funcSym, ok := sym.(*FuncSymbol)
 		if err != nil || !ok {
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrUndefined))
@@ -204,7 +236,7 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []ValueType {
 		Type = append(Type, funcSym.Returns...)
 
 	case *parser.Identifier_expr:
-		sym, err := resolve(ctx.Scope, e.Name)
+		sym, err := Resolve(ctx.Scope, e.Name)
 		if err != nil {
 			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrUndefined))
 			return nil
@@ -217,6 +249,15 @@ func AnalyzeExpression(ctx *SemanticCtx, expr parser.Expression) []ValueType {
 		Type = append(Type, varSym.Type)
 
 	case *parser.Postfix_expr:
+		if !symbolExistAs[*VarSymbol](ctx, e.Target.Name) {
+			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrIdentNotDeclared))
+			return nil
+		}
+		varSym, _ := Resolve(ctx.Scope, e.Target.Name)
+		if varSym.(*VarSymbol).Type != IntType && varSym.(*VarSymbol).Type != FloatType {
+			ctx.Diagnostics = append(ctx.Diagnostics, *NewRLDiagnostic(ErrPostfixOnNonNumeric))
+			return nil
+		}
 
 	}
 	return Type

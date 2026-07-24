@@ -462,8 +462,8 @@ func TestParsePostfixStmt(t *testing.T) {
 		if post.Op != c.opTok {
 			t.Errorf("%v: op: got %v, want %v", c.opLex, post.Op, c.opTok)
 		}
-		ident, ok := post.Target.(*Identifier_expr)
-		if !ok || ident.Name != "x" {
+		ident := post.Target
+		if ident.Name != "x" {
 			t.Errorf("%v: target: got %T %v", c.opLex, post.Target, post.Target)
 		}
 	}

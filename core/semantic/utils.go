@@ -6,13 +6,13 @@ import (
 	"radlang/token"
 )
 
-func resolve(scope *Scope, name string) (Symbol, error) {
+func Resolve(scope *Scope, name string) (Symbol, error) {
 	symbol, ok := scope.SymbolTable[name]
 	if ok {
 		return symbol, nil
 	}
 	if scope.Parent != nil {
-		return resolve(scope.Parent, name)
+		return Resolve(scope.Parent, name)
 	}
 	return nil, fmt.Errorf("%s could not be resolved", name)
 }
@@ -42,6 +42,7 @@ func newChildCtx(ctx *SemanticCtx) *SemanticCtx {
 		CurrentFunc: ctx.CurrentFunc,
 		LoopDepth:   ctx.LoopDepth,
 		Diagnostics: []Diagnostic{},
+		slotCounter: ctx.slotCounter,
 	}
 }
 
@@ -57,17 +58,23 @@ func symbolExistAs[T any](ctx *SemanticCtx, target string) bool {
 
 func resolveType(tok token.TokenType) ValueType {
 	switch tok {
-	case token.INT_LIT:
+	case token.INT:
 		return IntType
-	case token.FLOAT_LIT:
+	case token.FLOAT:
 		return FloatType
-	case token.BOOL_LIT:
+	case token.BOOL:
 		return BoolType
+	case token.STRING:
+		return StringType
 	case token.ERROR_LITERAL:
 		return ErrorType
-	case token.STRING_LIT:
-		return StringType
 	default:
 		return InvalidType
 	}
+}
+
+func getNextSlot(ctx *SemanticCtx) int {
+	nextSlot := *ctx.slotCounter
+	*ctx.slotCounter++
+	return nextSlot
 }

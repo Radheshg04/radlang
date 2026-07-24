@@ -16,6 +16,7 @@
 - RL411(err): can use jump stmt only in "for"
 - RL412(err): exxpressions in expr_stmt must be fn_call or postfix
 - RL413(warn): warn for unreachable code
+- RL414(err): performing postfix op on non-numeric ident
 
 ## Expressions
 - RL501(err): cmpr op, arithmetic ops can only be used with declared idents, or lit_vals
